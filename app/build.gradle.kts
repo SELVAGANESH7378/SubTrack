@@ -61,11 +61,13 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.navigation.runtime.ktx)
     ksp(libs.hilt.compiler)
     ksp(libs.room.compiler)
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.gson)
+
 
 
 
