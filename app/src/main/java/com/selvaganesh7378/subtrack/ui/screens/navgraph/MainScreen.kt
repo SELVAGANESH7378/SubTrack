@@ -1,13 +1,16 @@
 package com.selvaganesh7378.subtrack.ui.screens.navgraph
 
+import android.os.Build
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -17,14 +20,17 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -34,7 +40,6 @@ import com.selvaganesh7378.subtrack.R
 import com.selvaganesh7378.subtrack.ui.screens.Screen
 import com.selvaganesh7378.subtrack.ui.screens.calander.CalendarScreen
 import com.selvaganesh7378.subtrack.ui.screens.subscription.SubscriptionScreen
-
 
 sealed class BottomNavItem(
     val route: String,
@@ -50,16 +55,16 @@ sealed class BottomNavItem(
         Screen.Main.Calendar.route,
         "Calendar", R.drawable.calendar
     )
-
 }
 
 val bottomNavItems = listOf(BottomNavItem.Subscription, BottomNavItem.Calendar)
 
-
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     rootNavController: NavHostController,
+    viewModel: MainViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
     val innerNavController = rememberNavController()
@@ -67,6 +72,19 @@ fun MainScreen(
     val currentRoute = navBackStackEntry?.destination?.route
 
     val currentTitle = currentRoute?.replaceFirstChar { it.uppercase() } ?: "MyApp"
+
+    // State to handle the dropdown menu visibility
+    var expanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.logoutEvent.collect {
+            rootNavController.navigate(Screen.Auth.route) {
+                popUpTo(rootNavController.graph.id) {
+                    inclusive = true
+                }
+            }
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -80,15 +98,34 @@ fun MainScreen(
                         actionIconContentColor = MaterialTheme.colorScheme.onBackground
                     ),
                     actions = {
-                        IconButton(
-                            onClick = {
-                                rootNavController.navigate(Screen.Main.Profile.route)
+                        Box {
+                            IconButton(
+                                onClick = { expanded = true }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.AccountCircle,
+                                    contentDescription = "Profile Options"
+                                )
                             }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.AccountCircle,
-                                contentDescription = "Profile"
-                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Profile") },
+                                    onClick = {
+                                        expanded = false
+                                        rootNavController.navigate(Screen.Main.Profile.route)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Logout") },
+                                    onClick = {
+                                        expanded = false
+                                        viewModel.logout()
+                                    }
+                                )
+                            }
                         }
                     }
                 )
@@ -115,17 +152,18 @@ fun MainScreen(
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(
-                            painter = painterResource(item.icon),
-                            contentDescription = item.label
-                        ) },
+                        icon = {
+                            Icon(
+                                painter = painterResource(item.icon),
+                                contentDescription = item.label
+                            )
+                        },
                         label = { Text(item.label) }
                     )
                 }
             }
         }
-    )
-    { paddingValues ->
+    ) { paddingValues ->
         NavHost(
             navController = innerNavController,
             startDestination = Screen.Main.Subscription.route,
@@ -139,5 +177,4 @@ fun MainScreen(
             }
         }
     }
-
 }

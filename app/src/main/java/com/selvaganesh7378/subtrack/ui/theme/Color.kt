@@ -9,6 +9,9 @@ val White = Color(0xFFFFFFFF)
 val ColorError = Color(0xFFE5484D)
 val ColorSuccess = Color(0xFF23C16B)
 val ColorWarning = Color(0xFFF5A623)
+val dangerRed = Color(0xFFFF6B6B)
+val dangerBg = Color(0xFF2A1111)
+val dangerBorder = Color(0xFF4A1A1A)
 
 // --- DARK THEME COLORS ---
 //val DarkBackground = Color(0xFF111218)

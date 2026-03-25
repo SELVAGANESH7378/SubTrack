@@ -29,9 +29,7 @@ fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
         composable(Screen.Auth.Register.route) {
             RegisterScreen(
                 onRegisterSuccess = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Auth.route) { inclusive = true }
-                    }
+                    navController.popBackStack()
                 },
                 onNavigateBack = {
                     navController.popBackStack()

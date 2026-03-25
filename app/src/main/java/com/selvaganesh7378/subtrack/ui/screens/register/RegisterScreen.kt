@@ -1,5 +1,8 @@
 package com.selvaganesh7378.subtrack.ui.screens.register
 
+import android.R.attr.colorError
+import android.util.Patterns
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,6 +40,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,24 +50,74 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.selvaganesh7378.subtrack.domain.LocalResult
+import com.selvaganesh7378.subtrack.ui.theme.ColorError
+import com.selvaganesh7378.subtrack.ui.theme.ColorSuccess
+import com.selvaganesh7378.subtrack.ui.theme.ColorWarning
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateBack: () -> Unit,
+    viewModel: RegisterViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val signUpState by viewModel.signUpState.collectAsState()
+
+    val isLoading = signUpState is LocalResult.Loading
+    val context = LocalContext.current
+    val passwordStrength = remember(password) {
+        when {
+            password.isEmpty() -> 0
+            password.length < 6 -> 1
+            password.length < 9 -> 2
+            else -> 3
+        }
+    }
+
+    val strengthColor = remember(passwordStrength) {
+        when (passwordStrength) {
+            1 -> ColorError // Red
+            2 -> ColorWarning // Yellow
+            3 -> ColorSuccess // Green
+            else -> Color.Transparent
+        }
+    }
+
+    val strengthText = remember(passwordStrength) {
+        when (passwordStrength) {
+            1 -> "Weak password"
+            2 -> "Fair password"
+            3 -> "Strong password"
+            else -> ""
+        }
+    }
+
+    LaunchedEffect(signUpState) {
+        when (signUpState) {
+            is LocalResult.Success -> {
+                onRegisterSuccess
+            }
+            is LocalResult.Error -> {
+                val errorMessage = (signUpState as LocalResult.Error).message
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+            else -> Unit
+        }
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -72,33 +127,11 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 24.dp)
+                .padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+
         ) {
-
-            // --- Top Navigation (Back to home) ---
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .clickable { onNavigateBack() }
-                    .padding(vertical = 8.dp) // Extra padding for touch target
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Back to home",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // --- Main Form Card ---
             Card(
@@ -265,11 +298,50 @@ fun RegisterScreen(
                         )
                     )
 
+                    // --- Password Strength UI ---
+                    if (password.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // The 3 segment bars
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val inactiveColor = MaterialTheme.colorScheme.surfaceVariant
+                            Box(modifier = Modifier.weight(1f).height(4.dp).background(if (passwordStrength >= 1) strengthColor else inactiveColor, RoundedCornerShape(2.dp)))
+                            Box(modifier = Modifier.weight(1f).height(4.dp).background(if (passwordStrength >= 2) strengthColor else inactiveColor, RoundedCornerShape(2.dp)))
+                            Box(modifier = Modifier.weight(1f).height(4.dp).background(if (passwordStrength >= 3) strengthColor else inactiveColor, RoundedCornerShape(2.dp)))
+                        }
+                        // The strength label
+                        Text(
+                            text = strengthText,
+                            color = strengthColor,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(32.dp))
 
                     // --- Create Account Button ---
                     Button(
-                        onClick = onRegisterSuccess,
+                        onClick = {
+                            val isNameValid = fullName.isNotBlank() && !fullName.all { it.isDigit() }
+
+                            val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
+
+                            // 3. Password validation: Assuming minimum 6 characters required to register
+                            val isPasswordValid = passwordStrength >= 2
+
+                            if (!isNameValid) {
+                                Toast.makeText(context, "Please enter a valid name", Toast.LENGTH_SHORT).show()
+                            } else if (!isEmailValid) {
+                                Toast.makeText(context, "Please enter a valid email address", Toast.LENGTH_SHORT).show()
+                            } else if (!isPasswordValid) {
+                                Toast.makeText(context, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show()
+                            } else {
+                                viewModel.register(fullName, email, password)
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt.android.gradle.plugin)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
 }
@@ -67,7 +68,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.gson)
-
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.coil.compose)
 
 
 

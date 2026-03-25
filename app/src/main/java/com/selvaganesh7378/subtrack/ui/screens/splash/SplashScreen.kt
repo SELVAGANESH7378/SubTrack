@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.selvaganesh7378.subtrack.ui.screens.Screen
 import kotlinx.coroutines.delay
@@ -19,14 +20,13 @@ import kotlinx.coroutines.delay
 fun SplashScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
+    viewModel: SplashViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
 
-    // Replace this with your actual auth check (Firebase, DataStore, etc.)
     val isLoggedIn = remember {
-        // e.g., FirebaseAuth.getInstance().currentUser != null
-        // or SharedPreferences check
-        false
+//        viewModel.checkIsLoggedIn()
+        true
     }
 
     LaunchedEffect(Unit) {
