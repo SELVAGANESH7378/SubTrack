@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.androidx.security.crypto)
     implementation(libs.coil.compose)
+    implementation(libs.datastore.preferences)
 
 
 

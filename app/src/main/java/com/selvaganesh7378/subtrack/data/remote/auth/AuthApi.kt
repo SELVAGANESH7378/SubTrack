@@ -1,5 +1,7 @@
 package com.selvaganesh7378.subtrack.data.remote.auth
 
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutResponse
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginRequest
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterRequest
@@ -18,6 +20,11 @@ interface AuthApi {
     suspend fun register(
         @Body request: RegisterRequest
     ): Response<RegisterResponse>
+
+    @POST("auth/logout")
+    suspend fun logout(
+        @Body request: LogOutRequest
+    ): Response<LogOutResponse>
 
     @POST("auth/refresh") // Change this to your actual refresh endpoint
     suspend fun refreshToken(

@@ -16,21 +16,21 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(authInterceptor: AuthInterceptor, tokenAuthenticator: TokenAuthenticator): OkHttpClient {
-        return OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
-            .authenticator(tokenAuthenticator)
-            .build()
-    }
+//    @Provides
+//    @Singleton
+//    fun provideOkHttpClient(authInterceptor: AuthInterceptor, tokenAuthenticator: TokenAuthenticator): OkHttpClient {
+//        return OkHttpClient.Builder()
+//            .addInterceptor(authInterceptor)
+//            .authenticator(tokenAuthenticator)
+//            .build()
+//    }
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
             .baseUrl("https://unresplendent-magniloquently-winfred.ngrok-free.dev/")
-            .client(okHttpClient)
+//            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

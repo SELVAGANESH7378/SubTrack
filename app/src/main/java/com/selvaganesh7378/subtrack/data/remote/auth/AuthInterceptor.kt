@@ -10,6 +10,13 @@ class AuthInterceptor @Inject constructor(
 ) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
+
+        val request = chain.request()
+        val path = request.url.encodedPath
+
+        if (path.contains("register", ignoreCase = true)) {
+            return chain.proceed(request)
+        }
         val requestBuilder = chain.request().newBuilder()
 
         val token = tokenManager.getAccessToken()
@@ -18,7 +25,7 @@ class AuthInterceptor @Inject constructor(
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
 
-        //  Proceed with the modified request
+        //  modified request
         return chain.proceed(requestBuilder.build())
     }
 }

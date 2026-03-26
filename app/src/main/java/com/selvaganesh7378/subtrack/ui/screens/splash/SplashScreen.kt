@@ -25,8 +25,8 @@ fun SplashScreen(
     val context = LocalContext.current
 
     val isLoggedIn = remember {
-//        viewModel.checkIsLoggedIn()
-        true
+        viewModel.checkIsLoggedIn()
+//        true
     }
 
     LaunchedEffect(Unit) {

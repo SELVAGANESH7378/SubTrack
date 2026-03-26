@@ -73,7 +73,7 @@ fun MainScreen(
 
     val currentTitle = currentRoute?.replaceFirstChar { it.uppercase() } ?: "MyApp"
 
-    // State to handle the dropdown menu visibility
+    // drop down menu state
     var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {

@@ -109,7 +109,7 @@ fun RegisterScreen(
     LaunchedEffect(signUpState) {
         when (signUpState) {
             is LocalResult.Success -> {
-                onRegisterSuccess
+                onRegisterSuccess()
             }
             is LocalResult.Error -> {
                 val errorMessage = (signUpState as LocalResult.Error).message
