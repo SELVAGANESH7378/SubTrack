@@ -4,6 +4,7 @@ data class Profile(
     val id: Int,
     val name: String,
     val email: String,
-    val photoUrl: String? = null,
-    val timezone: String? = null
+    val photoUrl: String,
+    val timezone: String,
+    val createdAt: String
 )

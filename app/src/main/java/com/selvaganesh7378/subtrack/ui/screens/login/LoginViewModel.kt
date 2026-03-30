@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
+import com.selvaganesh7378.subtrack.domain.model.auth.LoginResult
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,7 @@ class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ): ViewModel() {
 
-    private val _loginState =  MutableStateFlow<LocalResult<LoginResponse>?>(null)
+    private val _loginState =  MutableStateFlow<LocalResult<LoginResult>?>(null)
     val loginState = _loginState.asStateFlow()
 
     fun login(email: String, psw: String) {

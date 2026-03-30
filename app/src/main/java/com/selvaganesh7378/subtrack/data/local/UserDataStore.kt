@@ -10,8 +10,8 @@ import com.selvaganesh7378.subtrack.data.local.PreferencesKeys.USER_ID
 import com.selvaganesh7378.subtrack.data.local.PreferencesKeys.USER_NAME
 import com.selvaganesh7378.subtrack.data.local.PreferencesKeys.USER_PHOTO_URL
 import com.selvaganesh7378.subtrack.data.local.PreferencesKeys.USER_TIMEZONE
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.UserDto
 import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.domain.model.auth.User
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -26,11 +26,13 @@ class UserDataStore @Inject constructor(
 ) {
 
 
-    suspend fun saveUserLogin(user: UserDto) {
+    suspend fun saveUserLogin(user: User) {
         context.userDataStore.edit { preferences ->
             preferences[USER_ID] = user.id
             preferences[USER_NAME] = user.name
             preferences[USER_EMAIL] = user.email
+            preferences[USER_PHOTO_URL] = user.email
+            preferences[USER_TIMEZONE] = user.email
         }
     }
 
@@ -39,8 +41,8 @@ class UserDataStore @Inject constructor(
             preferences[USER_ID] = profile.id
             preferences[USER_NAME] = profile.name
             preferences[USER_EMAIL] = profile.email
-            preferences[USER_PHOTO_URL] = profile.photoUrl ?: ""
-            preferences[USER_TIMEZONE] = profile.timezone ?: ""
+            preferences[USER_PHOTO_URL] = profile.photoUrl
+            preferences[USER_TIMEZONE] = profile.timezone
         }
     }
 
@@ -70,14 +72,18 @@ class UserDataStore @Inject constructor(
         val id = preferences[USER_ID]
         val name = preferences[USER_NAME]
         val email = preferences[USER_EMAIL]
+        val photoUrl = preferences[USER_PHOTO_URL]
+        val timezone = preferences[USER_TIMEZONE]
 
-        if (id != null && name != null && email != null) {
+
+        if (id != null && name != null && email != null && photoUrl != null && timezone != null) {
             Profile(
                 id = id,
                 name = name,
                 email = email,
-                photoUrl = preferences[USER_PHOTO_URL],
-                timezone = preferences[USER_TIMEZONE]
+                photoUrl = photoUrl,
+                timezone = timezone,
+                createdAt = TODO()
             )
         } else {
             null
