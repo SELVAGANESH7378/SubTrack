@@ -1,5 +1,6 @@
 package com.selvaganesh7378.subtrack.data.mapper
 
+import com.selvaganesh7378.subtrack.data.local.room.SubscriptionEntity
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.ProfileDto
 import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionDto
 import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionSummaryDto
@@ -46,5 +47,37 @@ fun SubscriptionSummaryDto.toDomain(): SubscriptionSummary {
     return SubscriptionSummary(
         totalActive = this.totalActive ?: 0,
         monthlyCostUSD = this.monthlyCostUSD ?: "$0.00"
+    )
+}
+
+fun SubscriptionEntity.toDomain(): Subscription {
+    return Subscription(
+        id = this.id,
+        serviceName = this.serviceName,
+        category = this.category,
+        cost = this.cost,
+        status = this.status,
+        nextRenewal = this.nextRenewal,
+        remindMeIn = this.remindMeIn,
+        billingCycle = this.billingCycle,
+        paymentMethod = this.paymentMethod,
+        brandColorHex = this.brandColorHex,
+        currency = this.currency
+    )
+}
+
+fun Subscription.toEntity(): SubscriptionEntity {
+    return SubscriptionEntity(
+        id = this.id,
+        serviceName = this.serviceName,
+        category = this.category,
+        cost = this.cost,
+        status = this.status,
+        nextRenewal = this.nextRenewal,
+        remindMeIn = this.remindMeIn,
+        billingCycle = this.billingCycle,
+        paymentMethod = this.paymentMethod,
+        brandColorHex = this.brandColorHex,
+        currency = this.currency
     )
 }

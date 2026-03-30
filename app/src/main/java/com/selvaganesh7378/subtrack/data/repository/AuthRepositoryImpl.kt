@@ -1,8 +1,7 @@
 package com.selvaganesh7378.subtrack.data.repository
 
 import com.selvaganesh7378.subtrack.data.local.TokenManager
-import com.selvaganesh7378.subtrack.data.local.UserDataStore
-import com.selvaganesh7378.subtrack.data.mapper.toDomain
+import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
 import com.selvaganesh7378.subtrack.data.remote.auth.AuthApi
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutRequest
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutResponse
@@ -11,9 +10,6 @@ import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterRequest
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
-import com.selvaganesh7378.subtrack.domain.model.auth.LogOutResult
-import com.selvaganesh7378.subtrack.domain.model.auth.LoginResult
-import com.selvaganesh7378.subtrack.domain.model.auth.RegisterResult
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -28,7 +24,7 @@ class AuthRepositoryImpl @Inject constructor(
     private val userDataStore: UserDataStore
 ) : AuthRepository {
 
-    override suspend fun signIn(email: String, password: String): LocalResult<LoginResult> {
+    override suspend fun signIn(email: String, password: String): LocalResult<LoginResponse> {
         return try {
             val request = LoginRequest(email, password)
             val response = authApi.login(request)
@@ -41,8 +37,8 @@ class AuthRepositoryImpl @Inject constructor(
                     accessToken = loginData.accessToken,
                     refreshToken = loginData.refreshToken
                 )
-                userDataStore.saveUserLogin(loginData.user.toDomain())
-                LocalResult.Success(loginData.toDomain())
+                userDataStore.saveUserLogin(loginData.user)
+                LocalResult.Success(loginData)
 
             } else {
                 // Read errorBody once and store — stream can only be consumed once
@@ -76,14 +72,14 @@ class AuthRepositoryImpl @Inject constructor(
         email: String,
         password: String,
         currentTimeZone: String
-    ): LocalResult<RegisterResult> {
+    ): LocalResult<RegisterResponse> {
         return try {
             val request = RegisterRequest(name, email, password, currentTimeZone)
             val response = authApi.register(request)
 
             if (response.isSuccessful && response.body() != null) {
                 userDataStore.saveTimeZone(currentTimeZone)
-                LocalResult.Success(response.body()!!.toDomain())
+                LocalResult.Success(response.body()!!)
             } else {
                 LocalResult.Error("Registration failed: ${response.message()}")
             }
@@ -92,14 +88,14 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun logout(refreshToken: String): LocalResult<LogOutResult> {
+    override suspend fun logout(refreshToken: String): LocalResult<LogOutResponse> {
         return try {
             val request = LogOutRequest(refreshToken)
             val response = authApi.logout(request)
             if (response.isSuccessful && response.body() != null) {
                 userDataStore.clearUser()
                 tokenManager.clearTokens()
-                LocalResult.Success(response.body()!!.toDomain())
+                LocalResult.Success(response.body()!!)
             } else {
                 LocalResult.Error("Logout failed: ${response.message()}")
             }

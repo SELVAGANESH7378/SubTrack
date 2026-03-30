@@ -3,7 +3,7 @@ package com.selvaganesh7378.subtrack.data.repository
 import android.content.Context
 import android.net.Uri
 import com.selvaganesh7378.subtrack.data.local.TokenManager
-import com.selvaganesh7378.subtrack.data.local.UserDataStore
+import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
 import com.selvaganesh7378.subtrack.data.remote.profile.ProfileApiService
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.PasswordUpdateDto
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.ProfileUpdateDto
