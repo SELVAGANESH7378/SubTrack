@@ -1,4 +1,4 @@
-package com.selvaganesh7378.subtrack.data.local
+package com.selvaganesh7378.subtrack.data.local.datastore
 
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey

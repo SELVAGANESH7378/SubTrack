@@ -1,7 +1,7 @@
 package com.selvaganesh7378.subtrack.data.repository
 
 import com.selvaganesh7378.subtrack.data.local.TokenManager
-import com.selvaganesh7378.subtrack.data.local.UserDataStore
+import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
 import com.selvaganesh7378.subtrack.data.remote.auth.AuthApi
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutRequest
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutResponse
