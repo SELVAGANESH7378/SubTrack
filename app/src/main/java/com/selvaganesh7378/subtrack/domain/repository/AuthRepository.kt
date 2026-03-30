@@ -8,7 +8,7 @@ import com.selvaganesh7378.subtrack.domain.LocalResult
 interface AuthRepository {
     suspend fun signIn(email: String, password: String): LocalResult<LoginResponse>
 
-    suspend fun signUp(name: String, email: String, password: String): LocalResult<RegisterResponse>
+    suspend fun signUp(name: String, email: String, password: String, currentTimeZone: String): LocalResult<RegisterResponse>
 
     suspend fun logout(refreshToken: String): LocalResult<LogOutResponse>
 }

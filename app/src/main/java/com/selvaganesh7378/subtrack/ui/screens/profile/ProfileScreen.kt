@@ -1,16 +1,15 @@
 package com.selvaganesh7378.subtrack.ui.screens.profile
 
+import android.util.Patterns
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,41 +18,27 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.selvaganesh7378.subtrack.ui.theme.SubTrackTheme
+import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.presentation.profile.ProfileViewModel
 import com.selvaganesh7378.subtrack.ui.theme.dangerBg
 import com.selvaganesh7378.subtrack.ui.theme.dangerBorder
 import com.selvaganesh7378.subtrack.ui.theme.dangerRed
@@ -62,8 +47,34 @@ import com.selvaganesh7378.subtrack.ui.theme.dangerRed
 @Composable
 fun ProfileScreen(
     onNavigateBack: () -> Unit,
-    modifier: Modifier = Modifier
+    onNavigateToLogin: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Handle Toasts for success/error messages
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        uiState.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+        uiState.successMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+    }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                viewModel.uploadProfileImage(uri.toString())
+            }
+        }
+    )
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -72,97 +83,435 @@ fun ProfileScreen(
                     title = { Text("Profile") },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
-                        scrolledContainerColor = Color.Unspecified,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        actionIconContentColor = Color.Unspecified
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
-
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outline
-                )
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
             }
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-                .padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                shape = RoundedCornerShape(24.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
-                ) {
-                    ProfilePhoto("selva")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Selva ganesh",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "selvaganesh7378@gmail.com",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Chip("member since 2025")
-                }
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
+        } else {
+            val profile = uiState.profile
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(paddingValues)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+                // --- Top Profile Header ---
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    shape = RoundedCornerShape(24.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                    ) {
+                        ProfilePhoto(
+                            imageUrl = profile?.photoUrl,
+                            isUploading = uiState.isUploadingImage,
+                            onClick = {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = profile?.name ?: "User",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = profile?.email ?: "",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Chip("member since 2025") // You can make this dynamic later
+                    }
+                }
 
-            ProfileInformationCard()
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+                // --- Profile Info (Name & Timezone) ---
+                ProfileInformationCard(
+                    profile = profile,
+                    isSaving = uiState.isSavingProfile,
+                    onSave = { newName, email, newTimezone ->
+                        viewModel.updateProfile(newName, email, newTimezone)
+                    }
+                )
 
-            ChangePasswordCard()
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
+                // --- Password Update ---
+                ChangePasswordCard(
+                    isUpdating = uiState.isUpdatingPassword,
+                    onUpdate = { oldPsw, newPsw ->
+                        viewModel.updatePassword(oldPsw, newPsw)
+                    }
+                )
 
-            DangerZoneCard()
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // --- Delete Account ---
+                DangerZoneCard(
+                    isDeleting = uiState.isDeletingAccount,
+                    onDelete = { viewModel.deleteAccount() }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ProfilePhoto(imageUrl: String) {
-    AsyncImage(
-        model = imageUrl,
-        contentDescription = "User Profile Photo",
+fun ProfileInformationCard(
+    profile: Profile?,
+    isSaving: Boolean,
+    onSave: (String,String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+
+    var name by rememberSaveable(profile?.name) { mutableStateOf(profile?.name ?: "") }
+    var timeZone by rememberSaveable(profile?.timezone) { mutableStateOf(profile?.timezone ?: "America/New_York") }
+    var email by rememberSaveable(profile?.email) { mutableStateOf(profile?.email ?: "")}
+
+
+    val timezones = listOf(
+        "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+        "Europe/London", "Europe/Paris", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
+    )
+    var expanded by rememberSaveable{ mutableStateOf(false) }
+
+    val isNameValid = name.isNotBlank() && !name.all { it.isDigit() }
+    val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
+
+    val isFormValid = isNameValid && isEmailValid
+
+    val hasChanges = name != (profile?.name ?: "") ||
+            email != (profile?.email ?: "") ||
+            timeZone != (profile?.timezone ?: "America/New_York")
+
+    Card(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            Text("Profile Information", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Update your personal details and preferences", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            ProfileInputField(
+                label = "Full Name",
+                labelIcon = Icons.Outlined.Person,
+                value = name,
+                onValueChange = { name = it }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ProfileInputField(
+                label = "Email Address",
+                labelIcon = Icons.Outlined.Email,
+                value = email,
+                onValueChange = { email = it},
+//                readOnly = true, // Emails shouldn't be edited here based on your prompt
+//                helperText = "Email changes coming soon"
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Custom Dropdown for Timezone
+            Box {
+                ProfileInputField(
+                    label = "Timezone",
+                    labelIcon = Icons.Outlined.Schedule,
+                    value = timeZone,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = Icons.Default.ArrowDropDown,
+                    modifier = Modifier.clickable { expanded = true }
+                )
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    timezones.forEach { tz ->
+                        DropdownMenuItem(
+                            text = { Text(tz) },
+                            onClick = {
+                                timeZone = tz
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Button(
+                    onClick = { onSave(name,email, timeZone) },
+                    enabled = !isSaving && isFormValid && hasChanges,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Default.Check, "Save", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save Changes")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChangePasswordCard(
+    isUpdating: Boolean,
+    onUpdate: (String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var oldPassword by rememberSaveable{ mutableStateOf("") }
+    var newPassword by rememberSaveable{ mutableStateOf("") }
+    var confirmPassword by rememberSaveable{ mutableStateOf("") }
+
+    Card(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            Text("Change Password", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            ProfileInputField(
+                label = "Current Password",
+                labelIcon = Icons.Outlined.Lock,
+                value = oldPassword,
+                onValueChange = { oldPassword = it },
+                isPassword = true
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ProfileInputField(
+                label = "New Password",
+                labelIcon = Icons.Outlined.Lock,
+                value = newPassword,
+                onValueChange = { newPassword = it },
+                isPassword = true
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ProfileInputField(
+                label = "Confirm New Password",
+                labelIcon = Icons.Outlined.Lock,
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                isPassword = true
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+
+            val isFormValid = oldPassword.isNotBlank() && newPassword.length >= 6 && newPassword == confirmPassword
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Button(
+                    onClick = {
+                        onUpdate(oldPassword, newPassword)
+                        // Clear fields after sending
+                        oldPassword = ""; newPassword = ""; confirmPassword = ""
+                    },
+                    enabled = !isUpdating && isFormValid,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    if (isUpdating) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(Icons.Outlined.Lock, "Update", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Update Password")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DangerZoneCard(isDeleting: Boolean, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        border = BorderStroke(1.dp, dangerBorder),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+            Text("Danger Zone", color = dangerRed, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onDelete,
+                enabled = !isDeleting,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = dangerBg, contentColor = dangerRed),
+                modifier = Modifier.height(48.dp)
+            ) {
+                if (isDeleting) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = dangerRed, strokeWidth = 2.dp)
+                } else {
+                    Text("Delete Account")
+                }
+            }
+        }
+    }
+}
+
+// Helper components below remain mostly the same, just updated ProfileInputField to handle passwords/readOnly
+@Composable
+fun ProfileInputField(
+    label: String,
+    labelIcon: ImageVector,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "",
+    trailingIcon: ImageVector? = null,
+    helperText: String? = null,
+    readOnly: Boolean = false,
+    isPassword: Boolean = false
+) {
+    var passwordVisible by rememberSaveable{ mutableStateOf(false) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+            Icon(labelIcon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        }
+
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            readOnly = readOnly,
+            enabled = !readOnly, // Greys out the text slightly if it's read only like Email
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            placeholder = { Text(placeholder) },
+            trailingIcon = {
+                if (isPassword) {
+                    val icon = if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(icon, contentDescription = "Toggle password visibility")
+                    }
+                } else if (trailingIcon != null) {
+                    Icon(trailingIcon, null)
+                }
+            },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        if (helperText != null) {
+            Text(helperText, color = MaterialTheme.colorScheme.onPrimaryContainer, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
+@Composable
+fun ProfilePhoto(
+    imageUrl: String?,
+    isUploading: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
         modifier = Modifier
             .size(100.dp)
-            .clip(CircleShape)
-    )
+            .clickable(enabled = !isUploading, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        if (imageUrl.isNullOrEmpty()) {
+            Icon(
+                imageVector = Icons.Outlined.Person,
+                contentDescription = "Default Profile",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "User Profile Photo",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
+        }
+
+        if (isUploading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            }
+        }
+
+        if (!isUploading) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+                    .border(2.dp, MaterialTheme.colorScheme.background, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Change Photo",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -176,338 +525,7 @@ fun Chip(text: String) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Text(text = text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
-    }
-}
-
-@Composable
-fun ProfileInformationCard(modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.background
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-        ) {
-            Text(
-                text = "Profile Information",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Update your personal details and preferences",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Full Name
-            ProfileInputField(
-                label = "Full Name",
-                labelIcon = Icons.Outlined.Person,
-                value = "Alex Johnson",
-                onValueChange = { /* TODO */ }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Email Address
-            ProfileInputField(
-                label = "Email Address",
-                labelIcon = Icons.Outlined.Email,
-                value = "selvaganesh7378@gmail.com",
-                onValueChange = { /* TODO */ },
-                helperText = "Email changes coming soon"
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Currency
-            ProfileInputField(
-                label = "Currency",
-                labelIcon = Icons.Outlined.Public,
-                value = "USD",
-                onValueChange = { /* TODO */ },
-                trailingIcon = Icons.Default.ArrowDropDown
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Timezone
-            ProfileInputField(
-                label = "Timezone",
-                labelIcon = Icons.Outlined.Schedule,
-                value = "America/New_York",
-                onValueChange = { /* TODO */ },
-                trailingIcon = Icons.Default.ArrowDropDown
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Save Changes Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Button(
-                    onClick = { /* TODO: Save logic */ },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.height(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Save",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Save Changes",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ChangePasswordCard(modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.background
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-        ) {
-            Text(
-                text = "Change Password",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Use a strong password to keep your account secure",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Current Password
-            ProfileInputField(
-                label = "Current Password",
-                labelIcon = Icons.Outlined.Lock,
-                value = "",
-                placeholder = "Enter current password",
-                onValueChange = { /* TODO */ },
-                trailingIcon = Icons.Outlined.VisibilityOff
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // New Password
-            ProfileInputField(
-                label = "New Password",
-                labelIcon = Icons.Outlined.Lock,
-                value = "",
-                placeholder = "Min. 6 characters",
-                onValueChange = { /* TODO */ },
-                trailingIcon = Icons.Outlined.Visibility
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Confirm New Password
-            ProfileInputField(
-                label = "Confirm New Password",
-                labelIcon = Icons.Outlined.Lock,
-                value = "",
-                placeholder = "Repeat new password",
-                onValueChange = { /* TODO */ }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Update Password Button
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Button(
-                    onClick = { /* TODO: Update logic */ },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.height(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Lock,
-                        contentDescription = "Update Password",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Update Password",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DangerZoneCard(modifier: Modifier = Modifier) {
-    // Colors matching the red danger theme
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.background
-        ),
-        border = BorderStroke(1.dp, dangerBorder),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp)
-        ) {
-            Text(
-                text = "Danger Zone",
-                color = dangerRed,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Permanently delete your account and all your data. This cannot be undone.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 14.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = { /* TODO: Delete logic */ },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = dangerBg,
-                    contentColor = dangerRed
-                ),
-                modifier = Modifier.height(48.dp)
-            ) {
-                Text(
-                    text = "Delete Account",
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileInputField(
-    label: String,
-    labelIcon: ImageVector,
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    placeholder: String = "",
-    trailingIcon: ImageVector? = null,
-    helperText: String? = null
-) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 8.dp)
-        ) {
-            Icon(
-                imageVector = labelIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = label,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            },
-            trailingIcon = trailingIcon?.let {
-                { Icon(imageVector = it, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer) }
-            },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-            )
-        )
-
-        if (helperText != null) {
-            Text(
-                text = helperText,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun profilePreview() {
-    SubTrackTheme() {
-        ProfileScreen(onNavigateBack = {})
     }
 }

@@ -72,10 +72,12 @@ fun LoginScreen(
         when (loginState) {
             is LocalResult.Success -> {
                 onLoginSuccess()
+                viewModel.resetLoginState()
             }
             is LocalResult.Error -> {
                 val errorMessage = (loginState as LocalResult.Error).message
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                viewModel.resetLoginState()
             }
             else -> Unit
         }

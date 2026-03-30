@@ -14,9 +14,12 @@ class AuthInterceptor @Inject constructor(
         val request = chain.request()
         val path = request.url.encodedPath
 
-        if (path.contains("register", ignoreCase = true)) {
-            return chain.proceed(request)
+        val noAuthEndpoints = listOf("register", "login")
+
+        if (noAuthEndpoints.any { path.contains(it, ignoreCase = true) }) {
+            return chain.proceed(request) // Proceed without adding token
         }
+
         val requestBuilder = chain.request().newBuilder()
 
         val token = tokenManager.getAccessToken()

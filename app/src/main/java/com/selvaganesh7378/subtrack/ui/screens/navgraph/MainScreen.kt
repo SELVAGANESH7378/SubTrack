@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -74,17 +75,8 @@ fun MainScreen(
     val currentTitle = currentRoute?.replaceFirstChar { it.uppercase() } ?: "MyApp"
 
     // drop down menu state
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.logoutEvent.collect {
-            rootNavController.navigate(Screen.Auth.route) {
-                popUpTo(rootNavController.graph.id) {
-                    inclusive = true
-                }
-            }
-        }
-    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -170,7 +162,14 @@ fun MainScreen(
             modifier = Modifier.padding(paddingValues = paddingValues)
         ) {
             composable(Screen.Main.Subscription.route) {
-                SubscriptionScreen()
+                SubscriptionScreen(
+                    onAddClick = {
+                        rootNavController.navigate(Screen.Main.AddEditSubscription.route)
+                    },
+                    onEditClick = { id ->
+                        rootNavController.navigate(Screen.Main.AddEditSubscription.route + "?subscriptionId=$id")
+                    }
+                )
             }
             composable(Screen.Main.Calendar.route) {
                 CalendarScreen()

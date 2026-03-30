@@ -26,10 +26,7 @@ class LoginViewModel @Inject constructor(
             _loginState.value = result
         }
     }
-
-    private fun register(name: String, email: String, psw: String) {
-        viewModelScope.launch {
-            val result = authRepository.signUp(name, email, psw)
-        }
+    fun resetLoginState() {
+        _loginState.value = null
     }
 }
