@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
+import com.selvaganesh7378.subtrack.domain.model.auth.RegisterResult
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,7 @@ import javax.inject.Inject
 class RegisterViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ): ViewModel() {
-    private val _signUpState =  MutableStateFlow<LocalResult<RegisterResponse>?>(null)
+    private val _signUpState =  MutableStateFlow<LocalResult<RegisterResult>?>(null)
     val signUpState = _signUpState.asStateFlow()
 
     fun register(name: String, email: String, psw: String) {
