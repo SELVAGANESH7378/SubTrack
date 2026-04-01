@@ -69,8 +69,6 @@ class SubscriptionViewModel @Inject constructor(
 
             when (val result = repository.syncSubscriptions()) {
                 is LocalResult.Success -> {
-                    // We don't need to manually update the UI state's subscriptions here,
-                    // because saving to Room automatically triggers observeDatabase()!
                     _uiState.update { it.copy(isRefreshing = false) }
                 }
                 is LocalResult.Error -> {
@@ -107,11 +105,30 @@ class SubscriptionViewModel @Inject constructor(
     }
 
     fun deleteSubscription(id: String) {
-        // Note: For a real app, you should also call repository.deleteSubscription(id.toInt()) here!
-        _uiState.update { state ->
-            state.copy(subscriptions = state.subscriptions.filter { it.id != id })
+        val numericId = id.toIntOrNull() ?: return
+
+        viewModelScope.launch {
+            // Show loading state and clear any previous errors
+            _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
+
+            when (val result = repository.deleteSubscription(numericId)) {
+                is LocalResult.Success -> {
+                    // Stop loading.
+                    // observeDatabase() handles the list updates automatically!
+                    _uiState.update { it.copy(isRefreshing = false) }
+                }
+                is LocalResult.Error -> {
+                    // Stop loading and show the error message
+                    _uiState.update {
+                        it.copy(
+                            isRefreshing = false,
+                            errorMessage = result.message
+                        )
+                    }
+                }
+                else -> Unit
+            }
         }
-        applyFilters()
     }
 
     private fun applyFilters() {
@@ -177,7 +194,7 @@ class SubscriptionViewModel @Inject constructor(
             val fullHex = if (cleanHex.length == 6) "FF$cleanHex" else cleanHex
             fullHex.toLong(16)
         } catch (e: Exception) {
-            0xFF808080 // Fallback to Gray if parsing fails
+            0xFF808080
         }
     }
 }

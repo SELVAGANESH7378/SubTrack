@@ -1,7 +1,8 @@
 package com.selvaganesh7378.subtrack.data.mapper
 
 import com.selvaganesh7378.subtrack.data.local.room.SubscriptionEntity
-import com.selvaganesh7378.subtrack.data.remote.profile.dto.ProfileDto
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.UserDto
+import com.selvaganesh7378.subtrack.data.remote.profile.dto.profilefetch.ProfileResponseUserDto
 import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionDto
 import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionSummaryDto
 import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionsResponseDto
@@ -10,13 +11,15 @@ import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.model.subscription.SubscriptionSummary
 import com.selvaganesh7378.subtrack.domain.model.subscription.SubscriptionsResult
 
-fun ProfileDto.toDomain(id: Int): Profile {
+fun UserDto.toDomain(): Profile {
+    val tempCreateAt = createdAt.take(4)
     return Profile(
-        id = id,
-        name = name,
-        email = email,
-        photoUrl = photoUrl,
-        timezone = timezone
+        id = uid,
+        name = this.name,
+        email = this.email,
+        photoUrl = img ?: "",
+        timezone = timezone,
+        createdAt = tempCreateAt
     )
 }
 
@@ -24,6 +27,18 @@ fun SubscriptionsResponseDto.toDomain(): SubscriptionsResult {
     return SubscriptionsResult(
         subscriptions = this.subscriptions?.map { it.toDomain() } ?: emptyList(),
         summary = this.summary?.toDomain()
+    )
+}
+
+fun ProfileResponseUserDto.toDomain(): Profile {
+    val tempCreateAt = this.createdAt.take(4)
+    return Profile(
+        id = 0,
+        name = this.name,
+        email = this.email,
+        photoUrl = this.img,
+        timezone = this.timezone,
+        createdAt = tempCreateAt
     )
 }
 

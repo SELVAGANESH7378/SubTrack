@@ -1,14 +1,16 @@
 package com.selvaganesh7378.subtrack.data.repository
 
+import android.util.Log
 import com.selvaganesh7378.subtrack.data.local.TokenManager
 import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
+import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.remote.auth.AuthApi
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
 import org.json.JSONObject
@@ -32,17 +34,21 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful) {
                 val loginData = response.body()
                     ?: return LocalResult.Error("Login failed: Empty response body")
+                Log.e("authrepo", "loginData: accessToken=${loginData.accessToken}, refreshToken=${loginData.refreshToken}, userId=${loginData.user.uid}, userName=${loginData.user.name}, userEmail=${loginData.user.email}, userTimezone=${loginData.user.timezone}" +
+                        ", userCreatedAt=${loginData.user.createdAt}, userImg=${loginData.user.img}")
 
                 tokenManager.saveTokens(
                     accessToken = loginData.accessToken,
                     refreshToken = loginData.refreshToken
                 )
-                userDataStore.saveUserLogin(loginData.user)
+                userDataStore.saveUserProfile(loginData.user.toDomain())
                 LocalResult.Success(loginData)
 
             } else {
                 // Read errorBody once and store — stream can only be consumed once
                 val errorMessage = parseErrorMessage(response)
+                Log.e("authrepo", "errorMessage: $errorMessage")
+
                 LocalResult.Error(errorMessage)
             }
 

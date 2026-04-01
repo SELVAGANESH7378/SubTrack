@@ -1,4 +1,4 @@
-package com.selvaganesh7378.subtrack.data.remote.auth.dto
+package com.selvaganesh7378.subtrack.data.remote.auth.dto.register
 
 data class RegisterRequest(
     val name: String,

@@ -4,9 +4,10 @@ import android.content.Context
 import android.net.Uri
 import com.selvaganesh7378.subtrack.data.local.TokenManager
 import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
+import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.remote.profile.ProfileApiService
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.PasswordUpdateDto
-import com.selvaganesh7378.subtrack.data.remote.profile.dto.ProfileUpdateDto
+import com.selvaganesh7378.subtrack.data.remote.profile.dto.profileupdate.ProfileUpdateRequestDto
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.model.Profile
 import com.selvaganesh7378.subtrack.domain.repository.ProfileRepository
@@ -17,7 +18,9 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 class ProfileRepositoryImpl @Inject constructor(
     private val apiService: ProfileApiService,
@@ -30,9 +33,35 @@ class ProfileRepositoryImpl @Inject constructor(
         return userDataStore.profileFlow
     }
 
+    override suspend fun syncProfile(): LocalResult<Unit> {
+        return try {
+            val response = apiService.syncProfile()
+
+            if (response.isSuccessful && response.body() != null) {
+
+                val profileDetails = response.body()!!.user
+                val domainProfile = profileDetails.toDomain()
+
+                userDataStore.saveUserProfile(domainProfile)
+
+                LocalResult.Success(Unit)
+
+            } else {
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
+            }
+
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Working offline.")
+        } catch (e: Exception) {
+            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
+        }
+    }
+
     override suspend fun updateProfile(profile: Profile): LocalResult<Unit> {
         return try {
-            val updateDto = ProfileUpdateDto(
+            val updateDto = ProfileUpdateRequestDto(
                 name = profile.name,
                 email = profile.email,
                 timezone = profile.timezone
@@ -44,12 +73,16 @@ class ProfileRepositoryImpl @Inject constructor(
                 userDataStore.updateNameEmailAndTimezone(
                     name = profile.name,
                     email = profile.email,
-                    timezone = profile.timezone ?: ""
+                    timezone = profile.timezone
                 )
                 LocalResult.Success(Unit)
             } else {
-                LocalResult.Error("Update failed: ${response.code()}")
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Please check your connection.")
         } catch (e: Exception) {
             LocalResult.Error(e.message ?: "Update failed")
         }
@@ -70,8 +103,12 @@ class ProfileRepositoryImpl @Inject constructor(
             if (response.isSuccessful) {
                 LocalResult.Success(Unit)
             } else {
-                LocalResult.Error("Password update failed: ${response.code()}")
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Please check your connection.")
         } catch (e: Exception) {
             LocalResult.Error(e.message ?: "Password update failed")
         }
@@ -85,8 +122,12 @@ class ProfileRepositoryImpl @Inject constructor(
                 tokenManager.clearTokens()
                 LocalResult.Success(Unit)
             } else {
-                LocalResult.Error("Delete account failed: ${response.code()}")
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Please check your connection.")
         } catch (e: Exception) {
             LocalResult.Error(e.message ?: "Delete account failed")
         }
@@ -110,8 +151,12 @@ class ProfileRepositoryImpl @Inject constructor(
 
                 LocalResult.Success(newImageUrl)
             } else {
-                LocalResult.Error("Upload failed: ${response.code()}")
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Please check your connection.")
         } catch (e: Exception) {
             LocalResult.Error(e.message ?: "Image upload failed")
         }
@@ -132,4 +177,14 @@ class ProfileRepositoryImpl @Inject constructor(
         return tempFile
     }
 
+    private fun mapErrorCode(code: Int, message: String? = null): String {
+        return when (code) {
+            400 -> "Invalid request or missing fields"
+            401 -> "Unauthorized"
+            404 -> "User not found"
+            409 -> "Email already in use"
+            500 -> "Internal server error"
+            else -> "Error $code: ${message ?: "Unknown error"}"
+        }
+    }
 }

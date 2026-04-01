@@ -1,5 +1,6 @@
 package com.selvaganesh7378.subtrack.ui.screens.subscription
 
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -21,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,6 +42,14 @@ fun SubscriptionScreen(
     viewModel: SubscriptionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            Toast.makeText(context, uiState.errorMessage, Toast.LENGTH_LONG).show()
+        }
+    }
 
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
@@ -137,11 +148,45 @@ fun SubscriptionScreen(
                 ) {
                     Column {
                         if (uiState.filteredSubscriptions.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(48.dp),
-                                contentAlignment = Alignment.Center
+                            // NEW EMPTY STATE UI
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 64.dp, horizontal = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Text("No subscriptions found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    imageVector = Icons.Outlined.CreditCard, // Ensure you have material-icons-extended dependency, or use a painterResource
+                                    contentDescription = "No subscriptions",
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    text = "No subscriptions found",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                TextButton(
+                                    onClick = onAddClick
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Add",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Add your first subscription",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
                             }
                         } else {
                             uiState.filteredSubscriptions.forEachIndexed { index, sub ->

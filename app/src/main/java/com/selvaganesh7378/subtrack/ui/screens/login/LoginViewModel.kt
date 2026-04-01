@@ -2,7 +2,7 @@ package com.selvaganesh7378.subtrack.ui.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel

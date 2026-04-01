@@ -1,8 +1,8 @@
 package com.selvaganesh7378.subtrack.domain.repository
 
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
 
 interface AuthRepository {

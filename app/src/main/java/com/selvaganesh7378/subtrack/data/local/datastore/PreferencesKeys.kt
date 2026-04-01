@@ -10,4 +10,5 @@ object PreferencesKeys {
 
     val USER_PHOTO_URL = stringPreferencesKey("user_photo_url")
     val USER_TIMEZONE = stringPreferencesKey("user_timezone")
+    val USER_CREATED_AT = stringPreferencesKey("created_at")
 }
