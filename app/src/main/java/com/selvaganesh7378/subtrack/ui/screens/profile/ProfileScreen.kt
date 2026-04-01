@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -96,88 +97,96 @@ fun ProfileScreen(
             }
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            val profile = uiState.profile
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(paddingValues)
-                    .padding(bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(24.dp))
 
-                // --- Top Profile Header ---
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
-                    ) {
-                        ProfilePhoto(
-                            imageUrl = profile?.photoUrl,
-                            isUploading = uiState.isUploadingImage,
-                            onClick = {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = profile?.name ?: "User",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = profile?.email ?: "",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Chip("member since 2025") // You can make this dynamic later
-                    }
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { viewModel.refreshProfile() },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
+            } else {
+                val profile = uiState.profile
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // --- Profile Info (Name & Timezone) ---
-                ProfileInformationCard(
-                    profile = profile,
-                    isSaving = uiState.isSavingProfile,
-                    onSave = { newName, email, newTimezone ->
-                        viewModel.updateProfile(newName, email, newTimezone)
+                    // --- Top Profile Header ---
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                        ) {
+                            ProfilePhoto(
+                                imageUrl = profile?.photoUrl,
+                                isUploading = uiState.isUploadingImage,
+                                onClick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = profile?.name ?: "User",
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = profile?.email ?: "",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Chip("member since ${profile?.createdAt}")
+                        }
                     }
-                )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // --- Password Update ---
-                ChangePasswordCard(
-                    isUpdating = uiState.isUpdatingPassword,
-                    onUpdate = { oldPsw, newPsw ->
-                        viewModel.updatePassword(oldPsw, newPsw)
-                    }
-                )
+                    // --- Profile Info (Name & Timezone) ---
+                    ProfileInformationCard(
+                        profile = profile,
+                        isSaving = uiState.isSavingProfile,
+                        onSave = { newName, email, newTimezone ->
+                            viewModel.updateProfile(newName, email, newTimezone)
+                        }
+                    )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                // --- Delete Account ---
-                DangerZoneCard(
-                    isDeleting = uiState.isDeletingAccount,
-                    onDelete = { viewModel.deleteAccount() }
-                )
+                    // --- Password Update ---
+                    ChangePasswordCard(
+                        isUpdating = uiState.isUpdatingPassword,
+                        onUpdate = { oldPsw, newPsw ->
+                            viewModel.updatePassword(oldPsw, newPsw)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- Delete Account ---
+                    DangerZoneCard(
+                        isDeleting = uiState.isDeletingAccount,
+                        onDelete = { viewModel.deleteAccount() }
+                    )
+                }
             }
         }
     }

@@ -1,9 +1,11 @@
 package com.selvaganesh7378.subtrack.data.repository
 
+import android.util.Log
 import com.selvaganesh7378.subtrack.data.local.room.SubscriptionDao
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.mapper.toEntity
 import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
+import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionRequestDto
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
@@ -26,33 +28,113 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
-    // 2. ViewModel calls this to fetch from API and save to Room.
     override suspend fun syncSubscriptions(): LocalResult<Unit> {
         return try {
             val response = subscriptionApi.getAllSubscriptions()
 
             if (response.isSuccessful && response.body() != null) {
-                // Get the DTOs from the network
+
                 val networkSubscriptions = response.body()!!.subscriptions ?: emptyList()
+                val entitiesToSave = networkSubscriptions.map {
+                    Log.e("subsrepository", "color: ${it.brandColorHex} with ID ${it.id}")
+                    it.toDomain().toEntity()
+                }
 
-                // Map DTO -> Domain -> Room Entity
-                val entitiesToSave = networkSubscriptions.map { it.toDomain().toEntity() }
-
-                // Save to Room. This automatically triggers the Flow above to emit new data!
                 subscriptionDao.refreshSubscriptions(entitiesToSave)
 
                 LocalResult.Success(Unit)
+
             } else {
-                LocalResult.Error("Error ${response.code()}: ${response.message()}")
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
             }
+
         } catch (e: CancellationException) {
             throw e
         } catch (e: IOException) {
             LocalResult.Error("Network error. Working offline.")
-        } catch (e: HttpException) {
-            LocalResult.Error("Server error occurred (${e.code()}).")
         } catch (e: Exception) {
-            LocalResult.Error(e.localizedMessage ?: "An unexpected error occurred")
+            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
+        }
+    }
+
+    // 3. Delete logic: API first, Room second.
+    override suspend fun deleteSubscription(id: Int): LocalResult<Unit> {
+        return try {
+            // 1. Delete Online First
+            val response = subscriptionApi.deleteSubscription(id)
+
+            if (response.isSuccessful) {
+                // 2. If successful, Delete in Room
+                subscriptionDao.deleteSubscriptionById(id)
+
+                LocalResult.Success(Unit)
+            } else {
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Cannot delete while offline.")
+        } catch (e: Exception) {
+            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
+        }
+    }
+
+    override suspend fun getSubscriptionById(id: Int): Subscription? {
+        return subscriptionDao.getSubscriptionById(id)?.toDomain()
+    }
+
+    override suspend fun createSubscription(request: SubscriptionRequestDto): LocalResult<Unit> {
+        return try {
+            val response = subscriptionApi.createSubscription(request)
+
+            if (response.isSuccessful && response.body()?.subscription != null) {
+                // Save the new subscription to Room to instantly update the UI
+                val newSub = response.body()!!.subscription!!
+                Log.e("subsrepository", "color: ${newSub.brandColorHex} with ID ${newSub.id}")
+                val entitySub = newSub.toDomain().toEntity()
+                subscriptionDao.insertSubscriptions(listOf(entitySub))
+                LocalResult.Success(Unit)
+            } else {
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Cannot create while offline.")
+        } catch (e: Exception) {
+            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
+        }
+    }
+
+    override suspend fun updateSubscription(id: Int, request: SubscriptionRequestDto): LocalResult<Unit> {
+        return try {
+            val response = subscriptionApi.updateSubscription(id, request)
+
+            if (response.isSuccessful && response.body()?.subscription != null) {
+                // Overwrite the existing subscription in Room
+                val updatedSub = response.body()!!.subscription!!.toDomain().toEntity()
+                subscriptionDao.insertSubscriptions(listOf(updatedSub))
+                LocalResult.Success(Unit)
+            } else {
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: IOException) {
+            LocalResult.Error("Network error. Cannot update while offline.")
+        } catch (e: Exception) {
+            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
+        }
+    }
+
+    private fun mapErrorCode(code: Int, message: String? = null): String {
+        return when (code) {
+            400 -> "All fields are required"
+            401 -> "Unauthorized"
+            404 -> "Subscription not found"
+            500 -> "Internal server error"
+            else -> "Error $code: ${message ?: "Unknown error"}"
         }
     }
 }

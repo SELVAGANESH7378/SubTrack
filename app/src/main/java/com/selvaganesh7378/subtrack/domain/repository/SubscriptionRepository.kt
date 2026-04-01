@@ -1,5 +1,6 @@
 package com.selvaganesh7378.subtrack.domain.repository
 
+import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionRequestDto
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.model.subscription.SubscriptionsResult
@@ -11,4 +12,12 @@ interface SubscriptionRepository {
 
     // 2. Trigger a background network sync to update the database
     suspend fun syncSubscriptions(): LocalResult<Unit>
+
+    suspend fun deleteSubscription(id: Int): LocalResult<Unit>
+
+    suspend fun getSubscriptionById(id: Int): Subscription?
+
+    suspend fun createSubscription(request: SubscriptionRequestDto): LocalResult<Unit>
+
+    suspend fun updateSubscription(id: Int, request: SubscriptionRequestDto): LocalResult<Unit>
 }

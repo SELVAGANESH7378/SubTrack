@@ -15,6 +15,12 @@ interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions")
     fun getAllSubscriptionsFlow(): Flow<List<SubscriptionEntity>>
 
+    @Query("DELETE FROM subscriptions WHERE id = :id")
+    suspend fun deleteSubscriptionById(id: Int)
+
+    @Query("SELECT * FROM subscriptions WHERE id = :id LIMIT 1")
+    suspend fun getSubscriptionById(id: Int): SubscriptionEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSubscriptions(subscriptions: List<SubscriptionEntity>)
 

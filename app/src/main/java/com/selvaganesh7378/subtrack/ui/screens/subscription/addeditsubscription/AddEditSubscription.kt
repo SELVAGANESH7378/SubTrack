@@ -2,6 +2,7 @@ package com.selvaganesh7378.subtrack.ui.screens.subscription.addeditsubscription
 
 import android.content.res.Configuration
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -54,6 +56,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,9 +65,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -87,14 +92,25 @@ fun AddEditSubscriptionScreen(
     viewModel: AddEditSubscriptionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.saveSuccess, uiState.saveError) {
+        if (uiState.saveSuccess) {
+            onNavigateBack()
+        }
+
+        if (uiState.saveError != null) {
+            Toast.makeText(context, uiState.saveError, Toast.LENGTH_LONG).show()
+        }
+    }
 
     val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showRenewalDatePicker by remember { mutableStateOf(false) }
 
-    val categories = listOf("Entertainment", "Development", "Design", "Productivity", "Communication", "Storage", "Marketing", "Finance", "Other")
-    val currencies = listOf("USD", "INR", "EUR", "GBP", "CAD", "AUD", "JPY")
-    val paymentMethods = listOf("Credit Card", "Debit Card", "PayPal", "Bank Transfer", "UPI", "Other")
+    val categories = listOf("Entertainment", "Development", "Education", "Health", "Finance", "Productivity")
+    val currencies = listOf("USD", "INR", "EUR", "GBP", "AED")
+    val paymentMethods = listOf("PhonePe", "GPay", "Credit Card", "Debit Card", "UPI")
 
     // Dynamic UI Text based on Edit/Add mode
     val screenTitle = if (uiState.isEditMode) "Edit Subscription" else "Add New Subscription"
@@ -160,9 +176,10 @@ fun AddEditSubscriptionScreen(
                                 FormLabel("Cost", isRequired = true)
                                 CustomTextField(
                                     value = uiState.cost,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     onValueChange = { viewModel.updateCost(it) },
                                     placeholderText = "0.00",
-                                    leadingIcon = { Text("$", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) }
+                                    leadingIcon = { Text(viewModel.getCurrencySymbol(uiState.currency), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp) }
                                 )
                             }
                             Column(modifier = Modifier.weight(1f)) {
@@ -236,7 +253,7 @@ fun AddEditSubscriptionScreen(
 
                         FormLabel("Status")
                         ToggleGroup(
-                            options = listOf("Active", "Cancelled"),
+                            options = listOf("Active", "Canceled"),
                             selectedOption = uiState.status,
                             onOptionSelect = { viewModel.updateStatus(it) },
                             isStatusToggle = true
@@ -245,7 +262,7 @@ fun AddEditSubscriptionScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         FormLabel("Brand Color")
-                        ColorPicker(selectedColor = Color(uiState.brandColor), onColorSelect = { viewModel.updateBrandColor(it.value.toLong()) })
+                        ColorPicker(selectedColor = uiState.brandColor, onColorSelect = { viewModel.updateBrandColor(it) })
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -292,7 +309,7 @@ fun AddEditSubscriptionScreen(
                             Button(
                                 onClick = {
                                     viewModel.saveSubscription()
-                                    onNavigateBack() // Go back after saving
+//                                    onNavigateBack() // Go back after saving
                                 },
                                 modifier = Modifier.weight(1f).height(56.dp),
                                 colors = ButtonDefaults.buttonColors(
@@ -343,7 +360,8 @@ fun CustomTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     minLines: Int = 1,
     singleLine: Boolean = true,
-    readOnly: Boolean = false
+    readOnly: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
 ) {
     OutlinedTextField(
         value = value,
@@ -367,7 +385,8 @@ fun CustomTextField(
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         minLines = minLines,
-        singleLine = singleLine
+        singleLine = singleLine,
+        keyboardOptions = keyboardOptions
     )
 }
 
@@ -549,27 +568,42 @@ fun RemindMeGroup(options: List<String>, selectedOption: String, onOptionSelect:
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ColorPicker(selectedColor: Color, onColorSelect: (Color) -> Unit) {
-    // These remain hardcoded hex values because they represent actual brand/logo colors,
-    // not UI theme colors. They should look identical in light and dark mode.
+fun ColorPicker(selectedColor: Long, onColorSelect: (Long) -> Unit) {
     val brandColors = listOf(
-        Color(0xFF7986CB), Color(0xFF9575CD), Color(0xFFF06292), Color(0xFFE53935),
-        Color(0xFFFFB74D), Color(0xFF81C784), Color(0xFF4DD0E1), Color(0xFF64B5F6),
-        Color(0xFFFF8A65), Color(0xFF4CAF50), Color(0xFFD32F2F), Color(0xFFFFA000),
-        Color(0xFF512DA8), Color(0xFF448AFF), Color(0xFF7E57C2)
+        0xFFE50914L, 0xFF1DB954L, 0xFFFF0000L,
+        0xFF4A154BL, 0xFFA259FFL
     )
 
-    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        brandColors.forEach { color ->
-            val isSelected = color == selectedColor
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        brandColors.forEach { colorLong ->
+            val isSelected = colorLong == selectedColor
+
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(color)
-                    .clickable { onColorSelect(color) }
-                    .then(if (isSelected) Modifier.border(2.dp, Color.White, CircleShape) else Modifier)
-            )
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable { onColorSelect(colorLong) },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .border(2.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(16.dp))
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(colorLong))
+                )
+            }
         }
     }
 }
@@ -632,7 +666,7 @@ fun SubscriptionPreviewCard(
 @Preview(
     name = "Add/Edit Subscription Screen",
     showBackground = true,
-    backgroundColor = 0xFF080812, // Using your DarkBackground from Color.kt
+    backgroundColor = 0xFF080812, // DarkBackground from Color.kt
     uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
