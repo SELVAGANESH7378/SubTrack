@@ -1,6 +1,6 @@
 package com.selvaganesh7378.subtrack.data.mapper
 
-import com.selvaganesh7378.subtrack.data.local.room.SubscriptionEntity
+import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionEntity
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.UserDto
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.profilefetch.ProfileResponseUserDto
 import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionDto

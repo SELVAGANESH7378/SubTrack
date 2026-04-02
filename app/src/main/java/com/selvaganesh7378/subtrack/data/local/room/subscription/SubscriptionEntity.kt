@@ -1,4 +1,4 @@
-package com.selvaganesh7378.subtrack.data.local.room
+package com.selvaganesh7378.subtrack.data.local.room.subscription
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

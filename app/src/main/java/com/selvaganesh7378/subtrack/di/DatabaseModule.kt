@@ -3,7 +3,8 @@ package com.selvaganesh7378.subtrack.di
 import android.content.Context
 import androidx.room.Room
 import com.selvaganesh7378.subtrack.data.local.room.SubTrackDatabase
-import com.selvaganesh7378.subtrack.data.local.room.SubscriptionDao
+import com.selvaganesh7378.subtrack.data.local.room.remotekeys.RemoteKeysDao
+import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,5 +33,11 @@ object DatabaseModule {
     @Singleton
     fun provideSubscriptionDao(database: SubTrackDatabase): SubscriptionDao {
         return database.subscriptionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRemoteKeysDao(database: SubTrackDatabase): RemoteKeysDao {
+        return database.remoteKeysDao()
     }
 }

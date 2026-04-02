@@ -2,12 +2,15 @@ package com.selvaganesh7378.subtrack.ui.screens.subscription
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
+import androidx.paging.map
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,6 +42,15 @@ data class SubscriptionScreenState(
 class SubscriptionViewModel @Inject constructor(
     private val repository: SubscriptionRepository
 ) : ViewModel() {
+
+
+    val subscriptionsPagingFlow = repository.getSubscriptionsStream()
+        .map { pagingData ->
+            pagingData.map { domainModel ->
+                domainModel.toUiModel()
+            }
+        }
+        .cachedIn(viewModelScope)
 
     private val _uiState = MutableStateFlow(SubscriptionScreenState())
     val uiState = _uiState.asStateFlow()

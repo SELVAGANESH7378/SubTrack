@@ -1,6 +1,7 @@
-package com.selvaganesh7378.subtrack.data.local.room
+package com.selvaganesh7378.subtrack.data.local.room.subscription
 
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -11,7 +12,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SubscriptionDao {
 
-    // Returns a Flow so your UI can automatically update whenever the database changes!
+    @Query("SELECT * FROM subscriptions ORDER BY id DESC")
+    fun getPaginatedSubscriptions(): PagingSource<Int, SubscriptionEntity>
+
     @Query("SELECT * FROM subscriptions")
     fun getAllSubscriptionsFlow(): Flow<List<SubscriptionEntity>>
 

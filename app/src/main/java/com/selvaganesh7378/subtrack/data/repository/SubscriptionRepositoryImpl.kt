@@ -1,7 +1,14 @@
 package com.selvaganesh7378.subtrack.data.repository
 
 import android.util.Log
-import com.selvaganesh7378.subtrack.data.local.room.SubscriptionDao
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
+import com.selvaganesh7378.subtrack.data.local.room.SubTrackDatabase
+import com.selvaganesh7378.subtrack.data.local.room.SubscriptionRemoteMediator
+import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionDao
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.mapper.toEntity
 import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
@@ -11,20 +18,41 @@ import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 class SubscriptionRepositoryImpl @Inject constructor(
     private val subscriptionApi: SubscriptionApi,
-    private val subscriptionDao: SubscriptionDao
+    private val subscriptionDao: SubscriptionDao,
+    private val db: SubTrackDatabase
 ) : SubscriptionRepository {
 
     // 1. UI observes this. It automatically updates whenever Room changes.
-    override fun getSubscriptionsStream(): Flow<List<Subscription>> {
-        return subscriptionDao.getAllSubscriptionsFlow().map { entities ->
-            entities.map { it.toDomain() }
+//    override fun getSubscriptionsStream(): Flow<List<Subscription>> {
+//        return subscriptionDao.getAllSubscriptionsFlow().map { entities ->
+//            entities.map { it.toDomain() }
+//        }
+//    }
+    @OptIn(ExperimentalPagingApi::class)
+    override fun getSubscriptionsStream(): Flow<PagingData<Subscription>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = 20,
+                prefetchDistance = 5
+            ),
+            // The Mediator handles fetching from API and saving to Room
+            remoteMediator = SubscriptionRemoteMediator(
+                api = subscriptionApi,
+                db = db
+            ),
+            // Room acts as the single source of truth
+            pagingSourceFactory = {
+                subscriptionDao.getPaginatedSubscriptions()
+            }
+        ).flow.map { pagingData ->
+            // Map the Room entities to Domain models before sending to ViewModel
+            pagingData.map { entity -> entity.toDomain() }
         }
     }
 

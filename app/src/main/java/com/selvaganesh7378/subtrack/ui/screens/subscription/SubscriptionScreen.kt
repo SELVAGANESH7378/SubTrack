@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.selvaganesh7378.subtrack.ui.theme.ColorSuccess
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +44,8 @@ fun SubscriptionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val lazyPagingItems = viewModel.subscriptionsPagingFlow.collectAsLazyPagingItems()
+
     val context = LocalContext.current
 
     LaunchedEffect(uiState.errorMessage) {
@@ -53,7 +56,7 @@ fun SubscriptionScreen(
 
     PullToRefreshBox(
         isRefreshing = uiState.isRefreshing,
-        onRefresh = { viewModel.refreshSubscriptions() },
+        onRefresh = { lazyPagingItems.refresh() },
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
