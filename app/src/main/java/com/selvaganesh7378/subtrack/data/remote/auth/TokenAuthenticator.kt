@@ -1,6 +1,7 @@
 package com.selvaganesh7378.subtrack.data.remote.auth
 
 import com.selvaganesh7378.subtrack.data.local.TokenManager
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.refreshtoken.RefreshTokenRequest
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.Request
@@ -23,7 +24,7 @@ class TokenAuthenticator @Inject constructor(
 
         val newTokensResponse = runBlocking {
             try {
-                val requestBody = mapOf("refreshToken" to refreshToken)
+                val requestBody = RefreshTokenRequest(refreshToken = refreshToken)
                 authApiProvider.get().refreshToken(requestBody)
             } catch (e: Exception) {
                 null
@@ -32,8 +33,10 @@ class TokenAuthenticator @Inject constructor(
         if (newTokensResponse != null && newTokensResponse.isSuccessful) {
             val body = newTokensResponse.body()
             if (body != null) {
-                // Save the shiny new tokens to the vault
-                tokenManager.saveTokens(body.accessToken, body.refreshToken)
+                tokenManager.saveTokens(
+                    accessToken = body.accessToken,
+                    refreshToken = refreshToken // <-- Reusing the existing one!
+                )
 
                 // Clone the original failed request, but stamp the new token on it
                 return response.request.newBuilder()

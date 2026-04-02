@@ -1,4 +1,6 @@
-package com.selvaganesh7378.subtrack.data.remote.auth.dto
+package com.selvaganesh7378.subtrack.data.remote.auth.dto.login
+
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.UserDto
 
 
 data class LoginResponse(

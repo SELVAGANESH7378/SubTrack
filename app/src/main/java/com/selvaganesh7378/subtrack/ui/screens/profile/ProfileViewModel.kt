@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 data class ProfileUiState(
     val profile: Profile? = null,
+    val isRefreshing: Boolean = false,
     val isLoading: Boolean = true,
     val isUploadingImage: Boolean = false,
     val isSavingProfile: Boolean = false,
@@ -33,6 +34,7 @@ class ProfileViewModel @Inject constructor(
 
     init {
         observeProfile()
+        triggerBackgroundSync()
     }
 
     fun uploadProfileImage(uriString: String) {
@@ -51,6 +53,32 @@ class ProfileViewModel @Inject constructor(
                 else -> Unit
             }
         }
+    }
+
+    private fun triggerBackgroundSync() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
+
+            when (val result = repository.syncProfile()) {
+                is LocalResult.Success -> {
+
+                    _uiState.update { it.copy(isRefreshing = false) }
+                }
+                is LocalResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRefreshing = false,
+                            errorMessage = result.message
+                        )
+                    }
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    fun refreshProfile() {
+        triggerBackgroundSync()
     }
 
     private fun observeProfile() {

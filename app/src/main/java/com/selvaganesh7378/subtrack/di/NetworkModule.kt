@@ -4,6 +4,7 @@ import com.selvaganesh7378.subtrack.data.remote.auth.AuthApi
 import com.selvaganesh7378.subtrack.data.remote.auth.AuthInterceptor
 import com.selvaganesh7378.subtrack.data.remote.auth.TokenAuthenticator
 import com.selvaganesh7378.subtrack.data.remote.profile.ProfileApiService
+import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,6 +44,12 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi {
         return retrofit.create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSubscriptionApi(retrofit: Retrofit): SubscriptionApi {
+        return retrofit.create(SubscriptionApi::class.java)
     }
 
     @Provides

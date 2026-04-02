@@ -1,4 +1,4 @@
-package com.selvaganesh7378.subtrack.data.local
+package com.selvaganesh7378.subtrack.data.local.datastore
 
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -10,6 +10,5 @@ object PreferencesKeys {
 
     val USER_PHOTO_URL = stringPreferencesKey("user_photo_url")
     val USER_TIMEZONE = stringPreferencesKey("user_timezone")
-
-    val CREATED_AT = stringPreferencesKey("created_at")
+    val USER_CREATED_AT = stringPreferencesKey("created_at")
 }

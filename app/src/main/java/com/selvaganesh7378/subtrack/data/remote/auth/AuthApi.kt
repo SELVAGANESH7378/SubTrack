@@ -1,11 +1,13 @@
 package com.selvaganesh7378.subtrack.data.remote.auth
 
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LogOutResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.LoginResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.RegisterResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.refreshtoken.RefreshTokenRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.refreshtoken.RefreshTokenResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterRequest
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -26,9 +28,9 @@ interface AuthApi {
         @Body request: LogOutRequest
     ): Response<LogOutResponse>
 
-    @POST("auth/refresh") // Change this to your actual refresh endpoint
+    @POST("auth/refresh")
     suspend fun refreshToken(
-        @Body refreshToken: Map<String, String> // e.g., {"refreshToken": "your_token"}
-    ): retrofit2.Response<LoginResponse> // Assuming the server returns the same token format
+        @Body request: RefreshTokenRequest
+    ): Response<RefreshTokenResponse>
 }
 

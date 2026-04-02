@@ -2,8 +2,9 @@ package com.selvaganesh7378.subtrack.data.remote.profile
 
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.ImageUploadResponseDto
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.PasswordUpdateDto
-import com.selvaganesh7378.subtrack.data.remote.profile.dto.ProfileDto
-import com.selvaganesh7378.subtrack.data.remote.profile.dto.ProfileUpdateDto
+import com.selvaganesh7378.subtrack.data.remote.profile.dto.profilefetch.ProfileResponse
+import com.selvaganesh7378.subtrack.data.remote.profile.dto.profileupdate.ProfileUpdateResponseDto
+import com.selvaganesh7378.subtrack.data.remote.profile.dto.profileupdate.ProfileUpdateRequestDto
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -16,12 +17,12 @@ import retrofit2.http.Part
 interface ProfileApiService {
 
     @GET("user/profile")
-    suspend fun getProfile(): Response<ProfileDto>
+    suspend fun syncProfile(): Response<ProfileResponse>
 
     @PUT("user/updates/details")
     suspend fun updateProfile(
-        @Body profileUpdate: ProfileUpdateDto
-    ): Response<ProfileDto>
+        @Body profileUpdate: ProfileUpdateRequestDto
+    ): Response<ProfileUpdateResponseDto>
 
     @Multipart
     @PUT("user/store/img")
@@ -36,4 +37,5 @@ interface ProfileApiService {
 
     @DELETE("user/delete")
     suspend fun deleteAccount(): Response<Unit>
+
 }
