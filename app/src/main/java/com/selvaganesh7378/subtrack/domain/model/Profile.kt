@@ -7,4 +7,5 @@ data class Profile(
     val photoUrl: String?,
     val timezone: String,
     val createdAt: String,
+    val currency: String,
 )

@@ -62,12 +62,15 @@ class ProfileViewModel @Inject constructor(
             when (val result = repository.syncProfile()) {
                 is LocalResult.Success -> {
 
-                    _uiState.update { it.copy(isRefreshing = false) }
+                    _uiState.update { it.copy(
+                        isRefreshing = false,
+                        isLoading = false) }
                 }
                 is LocalResult.Error -> {
                     _uiState.update {
                         it.copy(
                             isRefreshing = false,
+                            isLoading = false,
                             errorMessage = result.message
                         )
                     }
@@ -87,20 +90,19 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         profile = profileData,
-                        isLoading = profileData == null
                     )
                 }
             }
         }
     }
 
-    fun updateProfile(name: String,email: String, timezone: String) {
+    fun updateProfile(name: String,email: String, timezone: String, currency: String) {
         val currentProfile = _uiState.value.profile ?: return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingProfile = true, errorMessage = null, successMessage = null) }
 
-            val updatedProfile = currentProfile.copy(name = name, email = email, timezone = timezone)
+            val updatedProfile = currentProfile.copy(name = name, email = email, timezone = timezone, currency = currency)
             val result = repository.updateProfile(updatedProfile)
 
             when (result) {

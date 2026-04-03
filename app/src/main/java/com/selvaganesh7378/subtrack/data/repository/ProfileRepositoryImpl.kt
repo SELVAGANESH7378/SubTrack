@@ -64,7 +64,8 @@ class ProfileRepositoryImpl @Inject constructor(
             val updateDto = ProfileUpdateRequestDto(
                 name = profile.name,
                 email = profile.email,
-                timezone = profile.timezone
+                timezone = profile.timezone,
+                currency = profile.currency
             )
 
             val response = apiService.updateProfile(updateDto)
@@ -73,7 +74,8 @@ class ProfileRepositoryImpl @Inject constructor(
                 userDataStore.updateNameEmailAndTimezone(
                     name = profile.name,
                     email = profile.email,
-                    timezone = profile.timezone
+                    timezone = profile.timezone,
+                    currency = profile.currency
                 )
                 LocalResult.Success(Unit)
             } else {

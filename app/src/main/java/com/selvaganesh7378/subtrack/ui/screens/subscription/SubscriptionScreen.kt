@@ -30,8 +30,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.selvaganesh7378.subtrack.ui.theme.ColorSuccess
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +52,20 @@ fun SubscriptionScreen(
     val lazyPagingItems = viewModel.subscriptionsPagingFlow.collectAsLazyPagingItems()
 
     val context = LocalContext.current
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // Forces the Mediator to hit the API for Page 1 and get the new summary
+                lazyPagingItems.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(uiState.errorMessage) {
         if (uiState.errorMessage != null) {
@@ -80,7 +99,7 @@ fun SubscriptionScreen(
                     )
                     SummaryCard(
                         title = "Monthly Cost",
-                        value = "$${String.format("%.2f", uiState.monthlyCost)}",
+                        value = uiState.monthlyCost,
                         modifier = Modifier.weight(1.2f)
                     )
                 }
@@ -142,66 +161,48 @@ fun SubscriptionScreen(
             }
 
             // --- 4. The List Card ---
-            item {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column {
-                        if (uiState.filteredSubscriptions.isEmpty()) {
-                            // NEW EMPTY STATE UI
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 64.dp, horizontal = 24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CreditCard, // Ensure you have material-icons-extended dependency, or use a painterResource
-                                    contentDescription = "No subscriptions",
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
+            if (lazyPagingItems.itemCount == 0 && lazyPagingItems.loadState.refresh is LoadState.NotLoading) {
+                // Must be a direct child of LazyColumn, using 'item'
+                item {
+                    // Empty State UI
+                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Text("No subscriptions found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                // IMPORTANT: items() is now a direct child of LazyColumn!
+                items(
+                    count = lazyPagingItems.itemCount,
+                    key = lazyPagingItems.itemKey { it.id }
+                ) { index ->
+                    val sub = lazyPagingItems[index]
+                    if (sub != null) {
+                        // Wrapping each item in a card gives it a nice clean look
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp) // Spacing between cards
+                        ) {
+                            SubscriptionListItem(
+                                subscription = sub,
+                                onEdit = { onEditClick(sub.id) },
+                                onDelete = { viewModel.deleteSubscription(sub.id) }
+                            )
+                        }
+                    }
+                }
 
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Text(
-                                    text = "No subscriptions found",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                TextButton(
-                                    onClick = onAddClick
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Add",
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Add your first subscription",
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
-                                }
-                            }
-                        } else {
-                            uiState.filteredSubscriptions.forEachIndexed { index, sub ->
-                                SubscriptionListItem(
-                                    subscription = sub,
-                                    onEdit = { onEditClick(sub.id) },
-                                    onDelete = { viewModel.deleteSubscription(sub.id) }
-                                )
-                                if (index < uiState.filteredSubscriptions.size - 1) {
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-                                }
-                            }
+                // Show a loading spinner at the bottom when fetching page 2, 3, etc.
+                if (lazyPagingItems.loadState.append is LoadState.Loading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
                         }
                     }
                 }

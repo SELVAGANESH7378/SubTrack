@@ -2,9 +2,8 @@ package com.selvaganesh7378.subtrack.data.remote.subscription.dto
 
 data class SubscriptionDto(
     val id: Int? = null,
-    val userId: Int? = null,
     val serviceName: String? = null,
-    val categoryId: Int? = null,
+    val category: String? = null,
     val cost: Double? = null,
     val status: String? = null,
     val nextRenewal: String? = null,

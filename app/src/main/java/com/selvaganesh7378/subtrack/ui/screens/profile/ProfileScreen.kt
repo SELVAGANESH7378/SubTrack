@@ -154,7 +154,13 @@ fun ProfileScreen(
                                 fontSize = 14.sp
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Chip("member since ${profile?.createdAt}")
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Chip(profile?.currency ?: "USD")
+                                Chip("member since ${profile?.createdAt}")
+                            }
                         }
                     }
 
@@ -164,8 +170,8 @@ fun ProfileScreen(
                     ProfileInformationCard(
                         profile = profile,
                         isSaving = uiState.isSavingProfile,
-                        onSave = { newName, email, newTimezone ->
-                            viewModel.updateProfile(newName, email, newTimezone)
+                        onSave = { newName, email, newTimezone, newCurrency->
+                            viewModel.updateProfile(newName, email, newTimezone, newCurrency)
                         }
                     )
 
@@ -196,29 +202,34 @@ fun ProfileScreen(
 fun ProfileInformationCard(
     profile: Profile?,
     isSaving: Boolean,
-    onSave: (String,String, String) -> Unit,
+    onSave: (String, String, String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-
     var name by rememberSaveable(profile?.name) { mutableStateOf(profile?.name ?: "") }
+    var email by rememberSaveable(profile?.email) { mutableStateOf(profile?.email ?: "") }
     var timeZone by rememberSaveable(profile?.timezone) { mutableStateOf(profile?.timezone ?: "America/New_York") }
-    var email by rememberSaveable(profile?.email) { mutableStateOf(profile?.email ?: "")}
-
+    // NEW: Currency state
+    var currency by rememberSaveable(profile?.currency) { mutableStateOf(profile?.currency ?: "USD") }
 
     val timezones = listOf(
         "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
         "Europe/London", "Europe/Paris", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
     )
-    var expanded by rememberSaveable{ mutableStateOf(false) }
+
+    val currencies = listOf("USD", "INR", "EUR", "GBP", "AED")
+
+    var tzExpanded by rememberSaveable { mutableStateOf(false) }
+    var currencyExpanded by rememberSaveable { mutableStateOf(false) } // NEW: Dropdown state
 
     val isNameValid = name.isNotBlank() && !name.all { it.isDigit() }
     val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
-
     val isFormValid = isNameValid && isEmailValid
 
+    // UPDATE: Track changes for currency
     val hasChanges = name != (profile?.name ?: "") ||
             email != (profile?.email ?: "") ||
-            timeZone != (profile?.timezone ?: "America/New_York")
+            timeZone != (profile?.timezone ?: "America/New_York") ||
+            currency != (profile?.currency ?: "USD")
 
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -244,13 +255,41 @@ fun ProfileInformationCard(
                 label = "Email Address",
                 labelIcon = Icons.Outlined.Email,
                 value = email,
-                onValueChange = { email = it},
-//                readOnly = true, // Emails shouldn't be edited here based on your prompt
-//                helperText = "Email changes coming soon"
+                onValueChange = { email = it },
+                helperText = "Email changes coming soon"
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Custom Dropdown for Timezone
+            // NEW: Currency Dropdown
+            Box {
+                ProfileInputField(
+                    label = "Currency",
+                    labelIcon = Icons.Outlined.Public,
+                    value = currency,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = Icons.Default.ArrowDropDown,
+                    modifier = Modifier.clickable { currencyExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = currencyExpanded,
+                    onDismissRequest = { currencyExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    currencies.forEach { curr ->
+                        DropdownMenuItem(
+                            text = { Text(curr) },
+                            onClick = {
+                                currency = curr
+                                currencyExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Existing Timezone Dropdown
             Box {
                 ProfileInputField(
                     label = "Timezone",
@@ -259,11 +298,11 @@ fun ProfileInformationCard(
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = Icons.Default.ArrowDropDown,
-                    modifier = Modifier.clickable { expanded = true }
+                    modifier = Modifier.clickable { tzExpanded = true }
                 )
                 DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
+                    expanded = tzExpanded,
+                    onDismissRequest = { tzExpanded = false },
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ) {
                     timezones.forEach { tz ->
@@ -271,7 +310,7 @@ fun ProfileInformationCard(
                             text = { Text(tz) },
                             onClick = {
                                 timeZone = tz
-                                expanded = false
+                                tzExpanded = false
                             }
                         )
                     }
@@ -279,10 +318,9 @@ fun ProfileInformationCard(
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Button(
-                    onClick = { onSave(name,email, timeZone) },
+                    onClick = { onSave(name, email, timeZone, currency) },
                     enabled = !isSaving && isFormValid && hasChanges,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(48.dp)

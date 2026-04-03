@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.paging.runtime)
     implementation(libs.paging.compose)
+    implementation(libs.room.paging)
 
 
 

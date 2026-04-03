@@ -33,6 +33,7 @@ class UserDataStore @Inject constructor(
             preferences[PreferencesKeys.USER_PHOTO_URL] = profile.photoUrl ?: ""
             preferences[PreferencesKeys.USER_TIMEZONE] = profile.timezone
             preferences[PreferencesKeys.USER_CREATED_AT] = profile.createdAt
+            preferences[PreferencesKeys.USER_CURRENCY] = profile.currency
         }
     }
 
@@ -42,11 +43,12 @@ class UserDataStore @Inject constructor(
         }
     }
 
-    suspend fun updateNameEmailAndTimezone(name: String,email: String, timezone: String) {
+    suspend fun updateNameEmailAndTimezone(name: String,email: String, timezone: String, currency: String) {
         context.userDataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_NAME] = name
             preferences[PreferencesKeys.USER_EMAIL] = email
             preferences[PreferencesKeys.USER_TIMEZONE] = timezone
+            preferences[PreferencesKeys.USER_CURRENCY] = currency
         }
     }
 
@@ -65,15 +67,17 @@ class UserDataStore @Inject constructor(
         val photoUrl = preferences[PreferencesKeys.USER_PHOTO_URL]
         val timeZone = preferences[PreferencesKeys.USER_TIMEZONE]
         val createdAt = preferences[PreferencesKeys.USER_CREATED_AT]
+        val currency = preferences[PreferencesKeys.USER_CURRENCY]
 
-        if (id != null && name != null && email != null && photoUrl != null && timeZone != null && createdAt != null) {
+        if (id != null && name != null && email != null  && timeZone != null && createdAt != null && currency != null) {
             Profile(
                 id = id,
                 name = name,
                 email = email,
                 photoUrl = photoUrl,
                 timezone = timeZone,
-                createdAt = createdAt
+                createdAt = createdAt,
+                currency = currency
             )
         } else {
             null

@@ -9,6 +9,7 @@ import androidx.paging.map
 import com.selvaganesh7378.subtrack.data.local.room.SubTrackDatabase
 import com.selvaganesh7378.subtrack.data.local.room.SubscriptionRemoteMediator
 import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionDao
+import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionSummaryEntity
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.mapper.toEntity
 import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
@@ -28,62 +29,21 @@ class SubscriptionRepositoryImpl @Inject constructor(
     private val db: SubTrackDatabase
 ) : SubscriptionRepository {
 
-    // 1. UI observes this. It automatically updates whenever Room changes.
-//    override fun getSubscriptionsStream(): Flow<List<Subscription>> {
-//        return subscriptionDao.getAllSubscriptionsFlow().map { entities ->
-//            entities.map { it.toDomain() }
-//        }
-//    }
+
     @OptIn(ExperimentalPagingApi::class)
-    override fun getSubscriptionsStream(): Flow<PagingData<Subscription>> {
+    override fun getSubscriptionsStream(query: String, status: String, category: String): Flow<PagingData<Subscription>> {
         return Pager(
-            config = PagingConfig(
-                pageSize = 20,
-                prefetchDistance = 5
-            ),
-            // The Mediator handles fetching from API and saving to Room
-            remoteMediator = SubscriptionRemoteMediator(
-                api = subscriptionApi,
-                db = db
-            ),
-            // Room acts as the single source of truth
+            config = PagingConfig(pageSize = 10, prefetchDistance = 3),
+            remoteMediator = SubscriptionRemoteMediator(query, status, category, subscriptionApi, db),
             pagingSourceFactory = {
-                subscriptionDao.getPaginatedSubscriptions()
+                // Also pass it to the DAO!
+                subscriptionDao.getPaginatedSubscriptions(query, status, category)
             }
         ).flow.map { pagingData ->
-            // Map the Room entities to Domain models before sending to ViewModel
             pagingData.map { entity -> entity.toDomain() }
         }
     }
 
-    override suspend fun syncSubscriptions(): LocalResult<Unit> {
-        return try {
-            val response = subscriptionApi.getAllSubscriptions()
-
-            if (response.isSuccessful && response.body() != null) {
-
-                val networkSubscriptions = response.body()!!.subscriptions ?: emptyList()
-                val entitiesToSave = networkSubscriptions.map {
-                    Log.e("subsrepository", "color: ${it.brandColorHex} with ID ${it.id}")
-                    it.toDomain().toEntity()
-                }
-
-                subscriptionDao.refreshSubscriptions(entitiesToSave)
-
-                LocalResult.Success(Unit)
-
-            } else {
-                LocalResult.Error(mapErrorCode(response.code(), response.message()))
-            }
-
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: IOException) {
-            LocalResult.Error("Network error. Working offline.")
-        } catch (e: Exception) {
-            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
-        }
-    }
 
     // 3. Delete logic: API first, Room second.
     override suspend fun deleteSubscription(id: Int): LocalResult<Unit> {
@@ -133,6 +93,10 @@ class SubscriptionRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             LocalResult.Error(e.localizedMessage ?: "Unexpected error")
         }
+    }
+
+    override fun getSubscriptionSummary(): Flow<SubscriptionSummaryEntity?> {
+        return subscriptionDao.getSummaryFlow()
     }
 
     override suspend fun updateSubscription(id: Int, request: SubscriptionRequestDto): LocalResult<Unit> {
