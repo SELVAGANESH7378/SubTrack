@@ -1,4 +1,4 @@
-package com.selvaganesh7378.subtrack.domain.model
+package com.selvaganesh7378.subtrack.domain.model.profile
 
 data class Profile(
     val id: Int,
@@ -7,4 +7,5 @@ data class Profile(
     val photoUrl: String?,
     val timezone: String,
     val createdAt: String,
+    val currency: String,
 )

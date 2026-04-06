@@ -3,10 +3,11 @@ package com.selvaganesh7378.subtrack.presentation.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.selvaganesh7378.subtrack.domain.LocalResult
-import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.domain.model.profile.Profile
 import com.selvaganesh7378.subtrack.domain.repository.ProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -62,12 +63,15 @@ class ProfileViewModel @Inject constructor(
             when (val result = repository.syncProfile()) {
                 is LocalResult.Success -> {
 
-                    _uiState.update { it.copy(isRefreshing = false) }
+                    _uiState.update { it.copy(
+                        isRefreshing = false,
+                        isLoading = false) }
                 }
                 is LocalResult.Error -> {
                     _uiState.update {
                         it.copy(
                             isRefreshing = false,
+                            isLoading = false,
                             errorMessage = result.message
                         )
                     }
@@ -87,20 +91,19 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         profile = profileData,
-                        isLoading = profileData == null
                     )
                 }
             }
         }
     }
 
-    fun updateProfile(name: String,email: String, timezone: String) {
+    fun updateProfile(name: String,email: String, timezone: String, currency: String) {
         val currentProfile = _uiState.value.profile ?: return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSavingProfile = true, errorMessage = null, successMessage = null) }
 
-            val updatedProfile = currentProfile.copy(name = name, email = email, timezone = timezone)
+            val updatedProfile = currentProfile.copy(name = name, email = email, timezone = timezone, currency = currency)
             val result = repository.updateProfile(updatedProfile)
 
             when (result) {

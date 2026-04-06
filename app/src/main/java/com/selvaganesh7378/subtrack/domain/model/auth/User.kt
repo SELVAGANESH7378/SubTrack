@@ -6,4 +6,6 @@ data class User(
     val email: String = "",
     val url: String = "",
     val timeZone: String = "",
+    val currency: String = "",
+    val createdAt: String = ""
 )

@@ -6,5 +6,6 @@ data class UserDto(
     val email: String,
     val timezone: String,
     val img: String?,
+    val currency: String,
     val createdAt: String,
 )

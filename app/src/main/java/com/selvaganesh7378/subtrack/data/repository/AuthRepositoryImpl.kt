@@ -6,12 +6,12 @@ import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.remote.auth.AuthApi
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequestDto
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
+import com.selvaganesh7378.subtrack.domain.model.auth.LogOutResult
+import com.selvaganesh7378.subtrack.domain.model.auth.LoginResult
+import com.selvaganesh7378.subtrack.domain.model.auth.RegisterResult
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
 import org.json.JSONObject
 import retrofit2.HttpException
@@ -26,9 +26,9 @@ class AuthRepositoryImpl @Inject constructor(
     private val userDataStore: UserDataStore
 ) : AuthRepository {
 
-    override suspend fun signIn(email: String, password: String): LocalResult<LoginResponse> {
+    override suspend fun signIn(email: String, password: String): LocalResult<LoginResult> {
         return try {
-            val request = LoginRequest(email, password)
+            val request = LoginRequestDto(email, password)
             val response = authApi.login(request)
 
             if (response.isSuccessful) {
@@ -42,10 +42,9 @@ class AuthRepositoryImpl @Inject constructor(
                     refreshToken = loginData.refreshToken
                 )
                 userDataStore.saveUserProfile(loginData.user.toDomain())
-                LocalResult.Success(loginData)
+                LocalResult.Success(loginData.toDomain())
 
             } else {
-                // Read errorBody once and store — stream can only be consumed once
                 val errorMessage = parseErrorMessage(response)
                 Log.e("authrepo", "errorMessage: $errorMessage")
 
@@ -53,7 +52,7 @@ class AuthRepositoryImpl @Inject constructor(
             }
 
         } catch (e: CancellationException) {
-            throw e // Never swallow coroutine cancellation
+            throw e
         } catch (e: IOException) {
             LocalResult.Error("Network error. Please check your connection.")
         } catch (e: HttpException) {
@@ -78,14 +77,14 @@ class AuthRepositoryImpl @Inject constructor(
         email: String,
         password: String,
         currentTimeZone: String
-    ): LocalResult<RegisterResponse> {
+    ): LocalResult<RegisterResult> {
         return try {
             val request = RegisterRequest(name, email, password, currentTimeZone)
             val response = authApi.register(request)
 
             if (response.isSuccessful && response.body() != null) {
                 userDataStore.saveTimeZone(currentTimeZone)
-                LocalResult.Success(response.body()!!)
+                LocalResult.Success(response.body()!!.toDomain())
             } else {
                 LocalResult.Error("Registration failed: ${response.message()}")
             }
@@ -94,14 +93,14 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun logout(refreshToken: String): LocalResult<LogOutResponse> {
+    override suspend fun logout(refreshToken: String): LocalResult<LogOutResult> {
         return try {
             val request = LogOutRequest(refreshToken)
             val response = authApi.logout(request)
             if (response.isSuccessful && response.body() != null) {
                 userDataStore.clearUser()
                 tokenManager.clearTokens()
-                LocalResult.Success(response.body()!!)
+                LocalResult.Success(response.body()!!.toDomain())
             } else {
                 LocalResult.Error("Logout failed: ${response.message()}")
             }

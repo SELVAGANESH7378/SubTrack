@@ -1,7 +1,18 @@
 package com.selvaganesh7378.subtrack.data.repository
 
+import android.os.Build
 import android.util.Log
-import com.selvaganesh7378.subtrack.data.local.room.SubscriptionDao
+import androidx.annotation.RequiresApi
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
+import com.selvaganesh7378.subtrack.data.local.room.SubTrackDatabase
+import com.selvaganesh7378.subtrack.data.local.room.SubscriptionRemoteMediator
+import com.selvaganesh7378.subtrack.data.local.room.notification.NotificationEntity
+import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionDao
+import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionSummaryEntity
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.mapper.toEntity
 import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
@@ -11,60 +22,39 @@ import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import retrofit2.HttpException
 import java.io.IOException
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 class SubscriptionRepositoryImpl @Inject constructor(
     private val subscriptionApi: SubscriptionApi,
-    private val subscriptionDao: SubscriptionDao
+    private val subscriptionDao: SubscriptionDao,
+    private val db: SubTrackDatabase
 ) : SubscriptionRepository {
 
-    // 1. UI observes this. It automatically updates whenever Room changes.
-    override fun getSubscriptionsStream(): Flow<List<Subscription>> {
-        return subscriptionDao.getAllSubscriptionsFlow().map { entities ->
-            entities.map { it.toDomain() }
-        }
-    }
 
-    override suspend fun syncSubscriptions(): LocalResult<Unit> {
-        return try {
-            val response = subscriptionApi.getAllSubscriptions()
-
-            if (response.isSuccessful && response.body() != null) {
-
-                val networkSubscriptions = response.body()!!.subscriptions ?: emptyList()
-                val entitiesToSave = networkSubscriptions.map {
-                    Log.e("subsrepository", "color: ${it.brandColorHex} with ID ${it.id}")
-                    it.toDomain().toEntity()
-                }
-
-                subscriptionDao.refreshSubscriptions(entitiesToSave)
-
-                LocalResult.Success(Unit)
-
-            } else {
-                LocalResult.Error(mapErrorCode(response.code(), response.message()))
+    @OptIn(ExperimentalPagingApi::class)
+    override fun getSubscriptionsStream(query: String, status: String, category: String): Flow<PagingData<Subscription>> {
+        return Pager(
+            config = PagingConfig(pageSize = 10, prefetchDistance = 3),
+            remoteMediator = SubscriptionRemoteMediator(query, status, category, subscriptionApi, db),
+            pagingSourceFactory = {
+                subscriptionDao.getPaginatedSubscriptions(query, status, category)
             }
-
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: IOException) {
-            LocalResult.Error("Network error. Working offline.")
-        } catch (e: Exception) {
-            LocalResult.Error(e.localizedMessage ?: "Unexpected error")
+        ).flow.map { pagingData ->
+            pagingData.map { entity -> entity.toDomain() }
         }
     }
 
-    // 3. Delete logic: API first, Room second.
+
     override suspend fun deleteSubscription(id: Int): LocalResult<Unit> {
         return try {
-            // 1. Delete Online First
             val response = subscriptionApi.deleteSubscription(id)
 
             if (response.isSuccessful) {
-                // 2. If successful, Delete in Room
                 subscriptionDao.deleteSubscriptionById(id)
 
                 LocalResult.Success(Unit)
@@ -107,6 +97,10 @@ class SubscriptionRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getSubscriptionSummary(): Flow<SubscriptionSummaryEntity?> {
+        return subscriptionDao.getSummaryFlow()
+    }
+
     override suspend fun updateSubscription(id: Int, request: SubscriptionRequestDto): LocalResult<Unit> {
         return try {
             val response = subscriptionApi.updateSubscription(id, request)
@@ -135,6 +129,87 @@ class SubscriptionRepositoryImpl @Inject constructor(
             404 -> "Subscription not found"
             500 -> "Internal server error"
             else -> "Error $code: ${message ?: "Unknown error"}"
+        }
+    }
+
+    override suspend fun getUpcomingNotifications(): LocalResult<List<Subscription>> {
+        return try {
+            val response = subscriptionApi.getSubscriptions(
+                count = "all",
+                page = 1,
+                limit = 3,
+                status = "active"
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                val domainList = response.body()!!.subscriptions!!.map { it.toDomain() }
+                LocalResult.Success(domainList)
+            } else {
+                LocalResult.Error(mapErrorCode(response.code(), response.message()))
+            }
+        } catch (e: Exception) {
+            LocalResult.Error("Network error")
+        }
+    }
+
+    override fun getNotificationsFlow(): Flow<List<NotificationEntity>> {
+        return db.notificationDao().getNotificationsFlow()
+    }
+
+    override suspend fun markNotificationAsRead(id: Int) = db.notificationDao().markAsRead(id)
+    override suspend fun markAllNotificationsAsRead() = db.notificationDao().markAllAsRead()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override suspend fun syncNotifications(): LocalResult<Unit> {
+        return try {
+            val response = subscriptionApi.getSubscriptions(
+                count = "all", page = 1, limit = 3, status = "active"
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                val subs = response.body()!!.subscriptions
+
+                // Map the API Response to Room Entities
+                val entities = subs?.map { sub ->
+                    val renewalDate = try { LocalDate.parse(sub.nextRenewal, DateTimeFormatter.ISO_LOCAL_DATE) } catch (e: Exception) { LocalDate.now() }
+                    val daysBetween = ChronoUnit.DAYS.between(LocalDate.now(), renewalDate).toInt()
+
+                    val title = when {
+                        daysBetween < 0 -> "${sub.serviceName} is past due!"
+                        daysBetween == 0 -> "${sub.serviceName} renews today!"
+                        daysBetween == 1 -> "${sub.serviceName} renews tomorrow"
+                        else -> "${sub.serviceName} renews in $daysBetween days"
+                    }
+
+                    val formattedDate = renewalDate.format(DateTimeFormatter.ofPattern("MMM dd"))
+                    val costString = if (sub.cost!! % 1 == 0.0) sub.cost.toInt().toString() else sub.cost.toString()
+                    val currencySymbol = getCurrencySymbol(sub.currency!!)
+
+                    NotificationEntity(
+                        id = sub.id ?: 0,
+                        title = title,
+                        description = "Your ${sub.serviceName} subscription will renew on $formattedDate for $currencySymbol$costString"
+                    )
+                }
+
+                db.notificationDao().syncNotifications(entities!!.take(3))
+                LocalResult.Success(Unit)
+            } else {
+                LocalResult.Error("API Error")
+            }
+        } catch (e: Exception) {
+            LocalResult.Error("Network error")
+        }
+    }
+
+    private fun getCurrencySymbol(currencyCode: String): String {
+        return when (currencyCode.uppercase()) {
+            "USD" -> "$"
+            "INR" -> "₹"
+            "EUR" -> "€"
+            "GBP" -> "£"
+            "AED" -> "د.إ"
+            else -> currencyCode
         }
     }
 }

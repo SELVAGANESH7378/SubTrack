@@ -2,6 +2,7 @@ package com.selvaganesh7378.subtrack.ui.screens.profile
 
 import android.util.Patterns
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.domain.model.profile.Profile
 import com.selvaganesh7378.subtrack.presentation.profile.ProfileViewModel
 import com.selvaganesh7378.subtrack.ui.theme.dangerBg
 import com.selvaganesh7378.subtrack.ui.theme.dangerBorder
@@ -55,7 +56,16 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Handle Toasts for success/error messages
+
+    val isProcessing = uiState.isUploadingImage ||
+            uiState.isSavingProfile ||
+            uiState.isUpdatingPassword ||
+            uiState.isDeletingAccount
+
+    BackHandler(enabled = isProcessing) {
+        Toast.makeText(context, "Please wait, process in progress...", Toast.LENGTH_SHORT).show()
+    }
+
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         uiState.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -83,15 +93,14 @@ fun ProfileScreen(
                 CenterAlignedTopAppBar(
                     title = { Text("Profile") },
                     navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = onNavigateBack, enabled = !isProcessing) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    )
+                        navigationIconContentColor = if (isProcessing) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground                    )
                 )
                 HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
             }
@@ -154,7 +163,13 @@ fun ProfileScreen(
                                 fontSize = 14.sp
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Chip("member since ${profile?.createdAt}")
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Chip(profile?.currency ?: "USD")
+                                Chip("member since ${profile?.createdAt}")
+                            }
                         }
                     }
 
@@ -164,8 +179,8 @@ fun ProfileScreen(
                     ProfileInformationCard(
                         profile = profile,
                         isSaving = uiState.isSavingProfile,
-                        onSave = { newName, email, newTimezone ->
-                            viewModel.updateProfile(newName, email, newTimezone)
+                        onSave = { newName, email, newTimezone, newCurrency->
+                            viewModel.updateProfile(newName, email, newTimezone, newCurrency)
                         }
                     )
 
@@ -196,29 +211,34 @@ fun ProfileScreen(
 fun ProfileInformationCard(
     profile: Profile?,
     isSaving: Boolean,
-    onSave: (String,String, String) -> Unit,
+    onSave: (String, String, String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-
     var name by rememberSaveable(profile?.name) { mutableStateOf(profile?.name ?: "") }
+    var email by rememberSaveable(profile?.email) { mutableStateOf(profile?.email ?: "") }
     var timeZone by rememberSaveable(profile?.timezone) { mutableStateOf(profile?.timezone ?: "America/New_York") }
-    var email by rememberSaveable(profile?.email) { mutableStateOf(profile?.email ?: "")}
-
+    // NEW: Currency state
+    var currency by rememberSaveable(profile?.currency) { mutableStateOf(profile?.currency ?: "USD") }
 
     val timezones = listOf(
         "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
         "Europe/London", "Europe/Paris", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
     )
-    var expanded by rememberSaveable{ mutableStateOf(false) }
+
+    val currencies = listOf("USD", "INR", "EUR", "GBP", "AED")
+
+    var tzExpanded by rememberSaveable { mutableStateOf(false) }
+    var currencyExpanded by rememberSaveable { mutableStateOf(false) } // NEW: Dropdown state
 
     val isNameValid = name.isNotBlank() && !name.all { it.isDigit() }
     val isEmailValid = Patterns.EMAIL_ADDRESS.matcher(email).matches()
-
     val isFormValid = isNameValid && isEmailValid
 
+    // UPDATE: Track changes for currency
     val hasChanges = name != (profile?.name ?: "") ||
             email != (profile?.email ?: "") ||
-            timeZone != (profile?.timezone ?: "America/New_York")
+            timeZone != (profile?.timezone ?: "America/New_York") ||
+            currency != (profile?.currency ?: "USD")
 
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -244,13 +264,41 @@ fun ProfileInformationCard(
                 label = "Email Address",
                 labelIcon = Icons.Outlined.Email,
                 value = email,
-                onValueChange = { email = it},
-//                readOnly = true, // Emails shouldn't be edited here based on your prompt
-//                helperText = "Email changes coming soon"
+                onValueChange = { email = it },
+                helperText = "Email changes coming soon"
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Custom Dropdown for Timezone
+            // NEW: Currency Dropdown
+            Box {
+                ProfileInputField(
+                    label = "Currency",
+                    labelIcon = Icons.Outlined.Public,
+                    value = currency,
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = Icons.Default.ArrowDropDown,
+                    modifier = Modifier.clickable { currencyExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = currencyExpanded,
+                    onDismissRequest = { currencyExpanded = false },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    currencies.forEach { curr ->
+                        DropdownMenuItem(
+                            text = { Text(curr) },
+                            onClick = {
+                                currency = curr
+                                currencyExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Existing Timezone Dropdown
             Box {
                 ProfileInputField(
                     label = "Timezone",
@@ -259,11 +307,11 @@ fun ProfileInformationCard(
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = Icons.Default.ArrowDropDown,
-                    modifier = Modifier.clickable { expanded = true }
+                    modifier = Modifier.clickable { tzExpanded = true }
                 )
                 DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
+                    expanded = tzExpanded,
+                    onDismissRequest = { tzExpanded = false },
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ) {
                     timezones.forEach { tz ->
@@ -271,7 +319,7 @@ fun ProfileInformationCard(
                             text = { Text(tz) },
                             onClick = {
                                 timeZone = tz
-                                expanded = false
+                                tzExpanded = false
                             }
                         )
                     }
@@ -279,10 +327,9 @@ fun ProfileInformationCard(
             }
             Spacer(modifier = Modifier.height(24.dp))
 
-
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Button(
-                    onClick = { onSave(name,email, timeZone) },
+                    onClick = { onSave(name, email, timeZone, currency) },
                     enabled = !isSaving && isFormValid && hasChanges,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(48.dp)

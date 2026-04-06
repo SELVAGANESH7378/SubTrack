@@ -9,7 +9,7 @@ import com.selvaganesh7378.subtrack.data.remote.profile.ProfileApiService
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.PasswordUpdateDto
 import com.selvaganesh7378.subtrack.data.remote.profile.dto.profileupdate.ProfileUpdateRequestDto
 import com.selvaganesh7378.subtrack.domain.LocalResult
-import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.domain.model.profile.Profile
 import com.selvaganesh7378.subtrack.domain.repository.ProfileRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -64,7 +64,8 @@ class ProfileRepositoryImpl @Inject constructor(
             val updateDto = ProfileUpdateRequestDto(
                 name = profile.name,
                 email = profile.email,
-                timezone = profile.timezone
+                timezone = profile.timezone,
+                currency = profile.currency
             )
 
             val response = apiService.updateProfile(updateDto)
@@ -73,7 +74,8 @@ class ProfileRepositoryImpl @Inject constructor(
                 userDataStore.updateNameEmailAndTimezone(
                     name = profile.name,
                     email = profile.email,
-                    timezone = profile.timezone
+                    timezone = profile.timezone,
+                    currency = profile.currency
                 )
                 LocalResult.Success(Unit)
             } else {

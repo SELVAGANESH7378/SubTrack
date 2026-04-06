@@ -2,8 +2,8 @@ package com.selvaganesh7378.subtrack.data.remote.auth
 
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutRequest
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutResponse
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponse
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequestDto
+import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponseDto
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.refreshtoken.RefreshTokenRequest
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.refreshtoken.RefreshTokenResponse
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterRequest
@@ -15,8 +15,8 @@ import retrofit2.http.POST
 interface AuthApi {
     @POST("auth/login")
     suspend fun login(
-        @Body request: LoginRequest
-    ): Response<LoginResponse>
+        @Body request: LoginRequestDto
+    ): Response<LoginResponseDto>
 
     @POST("auth/register")
     suspend fun register(

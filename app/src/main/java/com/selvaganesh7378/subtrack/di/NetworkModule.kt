@@ -5,6 +5,7 @@ import com.selvaganesh7378.subtrack.data.remote.auth.AuthInterceptor
 import com.selvaganesh7378.subtrack.data.remote.auth.TokenAuthenticator
 import com.selvaganesh7378.subtrack.data.remote.profile.ProfileApiService
 import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
+import com.selvaganesh7378.subtrack.data.remote.calendar.CalendarApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,6 +45,12 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi {
         return retrofit.create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCalendarApi(retrofit: Retrofit): CalendarApi {
+        return retrofit.create(CalendarApi::class.java)
     }
 
     @Provides

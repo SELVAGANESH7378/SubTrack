@@ -1,6 +1,7 @@
-package com.selvaganesh7378.subtrack.data.local.room
+package com.selvaganesh7378.subtrack.data.local.room.subscription
 
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -11,9 +12,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface SubscriptionDao {
 
-    // Returns a Flow so your UI can automatically update whenever the database changes!
-    @Query("SELECT * FROM subscriptions")
-    fun getAllSubscriptionsFlow(): Flow<List<SubscriptionEntity>>
+    // 1. Paginated & Filtered Query
+    @Query("""
+        SELECT * FROM subscriptions 
+        WHERE (:query = '' OR serviceName LIKE '%' || :query || '%')
+        AND (:status = 'All' OR status COLLATE NOCASE = :status)
+        AND (:category = 'All' OR category COLLATE NOCASE = :category)
+        ORDER BY id DESC
+    """)
+    fun getPaginatedSubscriptions(query: String, status: String, category: String): PagingSource<Int, SubscriptionEntity>
 
     @Query("DELETE FROM subscriptions WHERE id = :id")
     suspend fun deleteSubscriptionById(id: Int)
@@ -27,10 +34,15 @@ interface SubscriptionDao {
     @Query("DELETE FROM subscriptions")
     suspend fun clearAllSubscriptions()
 
-    // Replaces the old cached list with the fresh list from the API
     @Transaction
     suspend fun refreshSubscriptions(subscriptions: List<SubscriptionEntity>) {
         clearAllSubscriptions()
         insertSubscriptions(subscriptions)
     }
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSummary(summary: SubscriptionSummaryEntity)
+
+    @Query("SELECT * FROM subscription_summary WHERE id = 1")
+    fun getSummaryFlow(): Flow<SubscriptionSummaryEntity?>
 }

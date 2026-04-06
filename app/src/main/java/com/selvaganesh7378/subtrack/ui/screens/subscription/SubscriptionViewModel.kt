@@ -2,13 +2,15 @@ package com.selvaganesh7378.subtrack.ui.screens.subscription
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.cachedIn
+import androidx.paging.map
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,13 +26,11 @@ data class SubscriptionItem(
 )
 
 data class SubscriptionScreenState(
-    val subscriptions: List<SubscriptionItem> = emptyList(),
-    val filteredSubscriptions: List<SubscriptionItem> = emptyList(),
     val searchQuery: String = "",
     val statusFilter: String = "All",
     val categoryFilter: String = "All",
     val totalActive: Int = 0,
-    val monthlyCost: Double = 0.0,
+    val monthlyCost: String = "$0.00",
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null
 )
@@ -40,128 +40,62 @@ class SubscriptionViewModel @Inject constructor(
     private val repository: SubscriptionRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(SubscriptionScreenState())
-    val uiState = _uiState.asStateFlow()
-
     init {
-        observeDatabase()
-        triggerBackgroundSync()
-    }
-
-    // 1. Constantly listen to Room DB. Any changes instantly update the UI.
-    private fun observeDatabase() {
+        // 2. Observe the single summary table
         viewModelScope.launch {
-            repository.getSubscriptionsStream().collect { domainSubscriptions ->
-                val uiItems = domainSubscriptions.map { it.toUiModel() }
-
-                _uiState.update {
-                    it.copy(subscriptions = uiItems)
-                }
-                applyFilters()
-            }
-        }
-    }
-
-    // 2. Fetch fresh data from the API to update Room.
-    private fun triggerBackgroundSync() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
-
-            when (val result = repository.syncSubscriptions()) {
-                is LocalResult.Success -> {
-                    _uiState.update { it.copy(isRefreshing = false) }
-                }
-                is LocalResult.Error -> {
+            repository.getSubscriptionSummary().collect { summary ->
+                if (summary != null) {
                     _uiState.update {
                         it.copy(
-                            isRefreshing = false,
-                            errorMessage = result.message
+                            totalActive = summary.totalActive,
+                            monthlyCost = summary.monthlyCost
                         )
                     }
                 }
-                else -> Unit
             }
         }
     }
+    private val _uiState = MutableStateFlow(SubscriptionScreenState())
+    val uiState = _uiState.asStateFlow()
 
-    // Called by the UI (e.g., Pull-to-refresh)
-    fun refreshSubscriptions() {
-        triggerBackgroundSync()
-    }
 
-    fun updateSearchQuery(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
-        applyFilters()
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    val subscriptionsPagingFlow = combine(
+        _uiState.map { it.searchQuery }.distinctUntilChanged().debounce(500L), // Waits half a second after user stops typing
+        _uiState.map { it.statusFilter }.distinctUntilChanged(),               //  Instant
+        _uiState.map { it.categoryFilter }.distinctUntilChanged()              //  Instant
+    ) { query, status, category ->
+        Triple(query, status, category)
     }
+        .flatMapLatest { (query, status, category) ->
+            repository.getSubscriptionsStream(query, status, category).map { pagingData ->
+                pagingData.map { it.toUiModel() }
+            }
+        }
+        .cachedIn(viewModelScope)
 
-    fun updateStatusFilter(status: String) {
-        _uiState.update { it.copy(statusFilter = status) }
-        applyFilters()
-    }
 
-    fun updateCategoryFilter(category: String) {
-        _uiState.update { it.copy(categoryFilter = category) }
-        applyFilters()
-    }
+    fun updateSearchQuery(query: String) = _uiState.update { it.copy(searchQuery = query) }
+    fun updateStatusFilter(status: String) = _uiState.update { it.copy(statusFilter = status) }
+    fun updateCategoryFilter(category: String) = _uiState.update { it.copy(categoryFilter = category) }
 
     fun deleteSubscription(id: String) {
         val numericId = id.toIntOrNull() ?: return
 
         viewModelScope.launch {
-            // Show loading state and clear any previous errors
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
-
             when (val result = repository.deleteSubscription(numericId)) {
                 is LocalResult.Success -> {
-                    // Stop loading.
-                    // observeDatabase() handles the list updates automatically!
                     _uiState.update { it.copy(isRefreshing = false) }
                 }
                 is LocalResult.Error -> {
-                    // Stop loading and show the error message
-                    _uiState.update {
-                        it.copy(
-                            isRefreshing = false,
-                            errorMessage = result.message
-                        )
-                    }
+                    _uiState.update { it.copy(isRefreshing = false, errorMessage = result.message) }
                 }
                 else -> Unit
             }
         }
     }
 
-    private fun applyFilters() {
-        val state = _uiState.value
-
-        val filtered = state.subscriptions.filter { sub ->
-            val matchesSearch = sub.name.contains(state.searchQuery, ignoreCase = true)
-            val matchesStatus = state.statusFilter == "All" || sub.status.equals(state.statusFilter, ignoreCase = true)
-            val matchesCategory = state.categoryFilter == "All" || sub.category.equals(state.categoryFilter, ignoreCase = true)
-
-            matchesSearch && matchesStatus && matchesCategory
-        }
-
-        val activeSubs = state.subscriptions.filter { it.status.equals("Active", ignoreCase = true) }
-        val totalActiveCount = activeSubs.size
-
-        // Assuming we calculate USD for the UI based on your previous logic
-        val calculatedMonthly = activeSubs.filter { it.currencySymbol == "$" }.sumOf { it.price }
-
-        _uiState.update {
-            it.copy(
-                filteredSubscriptions = filtered,
-                totalActive = totalActiveCount,
-                monthlyCost = calculatedMonthly
-            )
-        }
-    }
-
-    // --- Helper Mappers ---
-
-    /**
-     * Converts the pure Domain Subscription into the SubscriptionItem used by Jetpack Compose
-     */
     private fun Subscription.toUiModel(): SubscriptionItem {
         return SubscriptionItem(
             id = this.id.toString(),
@@ -169,7 +103,6 @@ class SubscriptionViewModel @Inject constructor(
             price = this.cost,
             currencySymbol = getCurrencySymbol(this.currency),
             billingCycle = this.billingCycle,
-            // Ensure status is capitalized nicely (e.g. "active" -> "Active")
             status = this.status.replaceFirstChar { it.uppercase() },
             color = parseHexColor(this.brandColorHex),
             category = this.category
@@ -190,7 +123,6 @@ class SubscriptionViewModel @Inject constructor(
     private fun parseHexColor(hexString: String): Long {
         return try {
             val cleanHex = if (hexString.startsWith("#")) hexString.substring(1) else hexString
-            // Compose colors expect ARGB. If the backend just sends RGB (6 chars), append FF for full opacity.
             val fullHex = if (cleanHex.length == 6) "FF$cleanHex" else cleanHex
             fullHex.toLong(16)
         } catch (e: Exception) {

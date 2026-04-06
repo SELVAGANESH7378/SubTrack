@@ -71,6 +71,9 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.coil.compose)
     implementation(libs.datastore.preferences)
+    implementation(libs.paging.runtime)
+    implementation(libs.paging.compose)
+    implementation(libs.room.paging)
 
 
 
