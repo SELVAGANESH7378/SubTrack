@@ -1,6 +1,7 @@
 package com.selvaganesh7378.subtrack.ui.screens.calander
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -49,8 +50,8 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val today = LocalDate.now()
-    var currentMonth by rememberSaveable { mutableStateOf(YearMonth.now()) }
-    var selectedDate by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -62,7 +63,7 @@ fun CalendarScreen(
         }
     }
 
-    val days = rememberSaveable (currentMonth) { generateCalendarDays(currentMonth) }
+    val days = remember (currentMonth) { generateCalendarDays(currentMonth) }
     val formatter = DateTimeFormatter.ofPattern("MMMM yyyy")
     val displayMonth = currentMonth.format(formatter)
 
@@ -93,8 +94,9 @@ fun CalendarScreen(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
+                val currentMonthName = currentMonth.format(DateTimeFormatter.ofPattern("MMMM"))
                 Text(
-                    text = displayMonth,
+                    text = "$currentMonthName Renewals",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -181,7 +183,10 @@ fun CalendarScreen(
                                 if (date != null) {
                                     val isToday = date == today
                                     val isSelected = date == selectedDate
-                                    val eventsForDay = events.filter { it.date == date }
+                                    val eventsForDay = events.filter {
+                                        Log.d("calendarscreen", "Comparing event date ${it.date} with cell date $date")
+                                        it.date == date
+                                    }
 
                                     CalendarDayCell(
                                         date = date,
@@ -297,8 +302,9 @@ fun CalendarScreen(
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
+                val currentMonthName = currentMonth.format(DateTimeFormatter.ofPattern("MMMM"))
                 Text(
-                    text = "March Renewals",
+                    text = "$currentMonthName Renewals",
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
