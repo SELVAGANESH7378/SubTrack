@@ -1,6 +1,7 @@
 package com.selvaganesh7378.subtrack.ui.screens.calander
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
@@ -16,7 +17,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit // IMPORT THIS
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 data class CalendarUiState(
@@ -59,6 +60,7 @@ class CalendarViewModel @Inject constructor(
                 return@launch
             }
 
+            Log.d("CalendarViewModel", "Fetching data for page: $calculatedPage")
             when (val result = repository.getCalendarData(year = targetMonth.year, page = calculatedPage)) {
                 is LocalResult.Success -> {
                     val allSubscriptions = result.data.records.flatMap { it.subscriptions }
@@ -67,12 +69,15 @@ class CalendarViewModel @Inject constructor(
                     // Grab the monthly cost from the first record in the API response
                     val apiMonthTotal = result.data.records.firstOrNull()?.monthlyCost ?: "$0.00"
 
+                    val totalPages = result.data.totalPages
+
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             events = uiEvents,
                             targetMonthFetched = targetMonth,
-                            monthTotal = apiMonthTotal
+                            monthTotal = apiMonthTotal,
+                            totalPages = totalPages
                         )
                     }
                 }
