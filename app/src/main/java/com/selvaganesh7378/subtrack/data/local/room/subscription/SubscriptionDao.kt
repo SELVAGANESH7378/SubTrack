@@ -18,7 +18,7 @@ interface SubscriptionDao {
         WHERE (:query = '' OR serviceName LIKE '%' || :query || '%')
         AND (:status = 'All' OR status COLLATE NOCASE = :status)
         AND (:category = 'All' OR category COLLATE NOCASE = :category)
-        ORDER BY id DESC
+        ORDER BY id ASC
     """)
     fun getPaginatedSubscriptions(query: String, status: String, category: String): PagingSource<Int, SubscriptionEntity>
 

@@ -1,5 +1,6 @@
 package com.selvaganesh7378.subtrack.data.local.room
 
+import android.util.Log
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.PagingState
@@ -11,9 +12,7 @@ import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionSum
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.mapper.toEntity
 import com.selvaganesh7378.subtrack.data.remote.subscription.SubscriptionApi
-import com.selvaganesh7378.subtrack.data.remote.subscription.dto.SubscriptionDto
 import kotlin.collections.emptyList
-import kotlin.collections.isNotEmpty
 
 @OptIn(ExperimentalPagingApi::class)
 class SubscriptionRemoteMediator(
@@ -38,21 +37,24 @@ class SubscriptionRemoteMediator(
                 LoadType.APPEND -> {
                     val remoteKeys = getRemoteKeyForLastItem(state)
                     val nextKey = remoteKeys?.nextKey
-                        ?: return MediatorResult.Success(endOfPaginationReached = remoteKeys != null)
+                    if (nextKey == null) {
+                        return MediatorResult.Success(endOfPaginationReached = true)
+                    }
                     nextKey
                 }
             }
 
+            Log.d("mediator", "Page: $page")
+
             val apiStatus = when (status) {
                 "Active" -> "active"
-                "Cancelled" -> "canceled" // Your API expects 1 L
+                "Cancelled" -> "canceled"
                 else -> null
             }
             val apiCategory = if (category == "All") null else category
             val apiQuery = query.ifBlank { null }
 
             val response = api.getSubscriptions(
-                count = "all",
                 page = page,
                 limit = state.config.pageSize,
                 status = apiStatus,
@@ -68,9 +70,17 @@ class SubscriptionRemoteMediator(
 
             val subscriptionList = responseBody?.subscriptions ?: emptyList()
             val paginationMeta = responseBody?.pagination
-            val isEndOfList = paginationMeta?.hasNextPage == false || subscriptionList.isEmpty()
-
+            
+            // Check pagination info from API response - prefer hasNextPage if available
+            val hasNextPage = paginationMeta?.hasNextPage == true
+            val isEndOfList = !hasNextPage || subscriptionList.isEmpty()
             val apiSummary = responseBody?.summary
+
+            Log.d("mediator", "hasNextPage = ${paginationMeta?.hasNextPage}")
+            Log.d("mediator", "hasPrevPage = ${paginationMeta?.hasPrevPage}")
+            Log.d("mediator", "isEndOfList = $isEndOfList")
+            Log.d("mediator", "subscriptionList size = ${subscriptionList.size}")
+
 
             db.withTransaction {
                 if (loadType == LoadType.REFRESH) {
@@ -84,7 +94,6 @@ class SubscriptionRemoteMediator(
                 val keys = subscriptionList.map {
                     SubscriptionRemoteKeysEntity(id = it.id ?: 0, prevKey = prevKey, nextKey = nextKey)
                 }
-
 
                 val entities = subscriptionList.map { it.toDomain().toEntity() }
 
@@ -105,6 +114,7 @@ class SubscriptionRemoteMediator(
 
             MediatorResult.Success(endOfPaginationReached = isEndOfList)
         } catch (e: Exception) {
+            Log.e("mediator", "Error loading subscriptions", e)
             MediatorResult.Error(e)
         }
     }

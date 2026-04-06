@@ -54,18 +54,18 @@ fun SubscriptionScreen(
     val context = LocalContext.current
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                // Forces the Mediator to hit the API for Page 1 and get the new summary
-                lazyPagingItems.refresh()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
+//    DisposableEffect(lifecycleOwner) {
+//        val observer = LifecycleEventObserver { _, event ->
+//            if (event == Lifecycle.Event.ON_RESUME) {
+//                // Forces the Mediator to hit the API for Page 1 and get the new summary
+//                lazyPagingItems.refresh()
+//            }
+//        }
+//        lifecycleOwner.lifecycle.addObserver(observer)
+//        onDispose {
+//            lifecycleOwner.lifecycle.removeObserver(observer)
+//        }
+//    }
 
     LaunchedEffect(uiState.errorMessage) {
         if (uiState.errorMessage != null) {
