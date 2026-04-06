@@ -2,6 +2,8 @@ package com.selvaganesh7378.subtrack.data.local.room
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.selvaganesh7378.subtrack.data.local.room.notification.NotificationDao
+import com.selvaganesh7378.subtrack.data.local.room.notification.NotificationEntity
 import com.selvaganesh7378.subtrack.data.local.room.remotekeys.RemoteKeysDao
 import com.selvaganesh7378.subtrack.data.local.room.remotekeys.SubscriptionRemoteKeysEntity
 import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionDao
@@ -12,12 +14,14 @@ import com.selvaganesh7378.subtrack.data.local.room.subscription.SubscriptionSum
     entities = [
         SubscriptionEntity::class,
         SubscriptionRemoteKeysEntity::class,
-        SubscriptionSummaryEntity::class
+        SubscriptionSummaryEntity::class,
+        NotificationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class SubTrackDatabase : RoomDatabase() {
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun remoteKeysDao(): RemoteKeysDao
+    abstract fun notificationDao(): NotificationDao
 }

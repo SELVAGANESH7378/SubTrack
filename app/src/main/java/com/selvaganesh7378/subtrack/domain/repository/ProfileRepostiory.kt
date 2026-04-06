@@ -1,7 +1,7 @@
 package com.selvaganesh7378.subtrack.domain.repository
 
 import com.selvaganesh7378.subtrack.domain.LocalResult
-import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.domain.model.profile.Profile
 import kotlinx.coroutines.flow.Flow
 
 interface ProfileRepository {

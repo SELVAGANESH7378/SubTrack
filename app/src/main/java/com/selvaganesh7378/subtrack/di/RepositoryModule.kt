@@ -1,9 +1,11 @@
 package com.selvaganesh7378.subtrack.di
 
 import com.selvaganesh7378.subtrack.data.repository.AuthRepositoryImpl
+import com.selvaganesh7378.subtrack.data.repository.CalendarRepositoryImpl
 import com.selvaganesh7378.subtrack.data.repository.ProfileRepositoryImpl
 import com.selvaganesh7378.subtrack.data.repository.SubscriptionRepositoryImpl
 import com.selvaganesh7378.subtrack.domain.repository.AuthRepository
+import com.selvaganesh7378.subtrack.domain.repository.CalendarRepository
 import com.selvaganesh7378.subtrack.domain.repository.ProfileRepository
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
 import dagger.Binds
@@ -33,5 +35,11 @@ abstract class RepositoryModule {
     abstract fun bindSubscriptionRepository(
         subscriptionRepositoryImpl: SubscriptionRepositoryImpl
     ): SubscriptionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCalendarRepository(
+        calendarRepositoryImpl: CalendarRepositoryImpl
+    ): CalendarRepository
 
 }

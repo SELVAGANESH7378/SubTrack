@@ -9,6 +9,7 @@ import com.selvaganesh7378.subtrack.domain.model.subscription.Subscription
 import com.selvaganesh7378.subtrack.domain.repository.SubscriptionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -57,12 +58,15 @@ class SubscriptionViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SubscriptionScreenState())
     val uiState = _uiState.asStateFlow()
 
-    // Whenever searchQuery, statusFilter, or categoryFilter changes,
-    // flatMapLatest triggers a NEW Pager, which forces the RemoteMediator to hit the API!
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val subscriptionsPagingFlow = _uiState
-        .map { Triple(it.searchQuery, it.statusFilter, it.categoryFilter) }
-        .distinctUntilChanged()
+
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
+    val subscriptionsPagingFlow = combine(
+        _uiState.map { it.searchQuery }.distinctUntilChanged().debounce(500L), // Waits half a second after user stops typing
+        _uiState.map { it.statusFilter }.distinctUntilChanged(),               //  Instant
+        _uiState.map { it.categoryFilter }.distinctUntilChanged()              //  Instant
+    ) { query, status, category ->
+        Triple(query, status, category)
+    }
         .flatMapLatest { (query, status, category) ->
             repository.getSubscriptionsStream(query, status, category).map { pagingData ->
                 pagingData.map { it.toUiModel() }

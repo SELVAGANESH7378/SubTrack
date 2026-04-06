@@ -6,11 +6,8 @@ import com.selvaganesh7378.subtrack.data.local.datastore.UserDataStore
 import com.selvaganesh7378.subtrack.data.mapper.toDomain
 import com.selvaganesh7378.subtrack.data.remote.auth.AuthApi
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.logout.LogOutResponse
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginRequestDto
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.login.LoginResponseDto
 import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterRequest
-import com.selvaganesh7378.subtrack.data.remote.auth.dto.register.RegisterResponse
 import com.selvaganesh7378.subtrack.domain.LocalResult
 import com.selvaganesh7378.subtrack.domain.model.auth.LogOutResult
 import com.selvaganesh7378.subtrack.domain.model.auth.LoginResult
@@ -48,7 +45,6 @@ class AuthRepositoryImpl @Inject constructor(
                 LocalResult.Success(loginData.toDomain())
 
             } else {
-                // Read errorBody once and store — stream can only be consumed once
                 val errorMessage = parseErrorMessage(response)
                 Log.e("authrepo", "errorMessage: $errorMessage")
 
@@ -56,7 +52,7 @@ class AuthRepositoryImpl @Inject constructor(
             }
 
         } catch (e: CancellationException) {
-            throw e // Never swallow coroutine cancellation
+            throw e
         } catch (e: IOException) {
             LocalResult.Error("Network error. Please check your connection.")
         } catch (e: HttpException) {

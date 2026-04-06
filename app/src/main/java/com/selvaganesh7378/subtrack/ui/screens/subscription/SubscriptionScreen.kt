@@ -143,7 +143,7 @@ fun SubscriptionScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    listOf("All", "Active", "Cancelled").forEach { status ->
+                    listOf("All", "Active", "Canceled").forEach { status ->
                         FilterPill(
                             text = status,
                             isSelected = uiState.statusFilter == status,
@@ -195,9 +195,8 @@ fun SubscriptionScreen(
                     }
                 }
 
-                // Show a loading spinner at the bottom when fetching page 2, 3, etc.
                 if (lazyPagingItems.loadState.append is LoadState.Loading) {
-                    item {
+                    item(key = "append_loader") {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(16.dp),
                             contentAlignment = Alignment.Center

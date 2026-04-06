@@ -308,8 +308,11 @@ fun AddEditSubscriptionScreen(
 
                             Button(
                                 onClick = {
-                                    viewModel.saveSubscription()
-//                                    onNavigateBack() // Go back after saving
+                                    if (uiState.serviceName.trim().isEmpty() || uiState.cost.trim().isEmpty()) {
+                                        Toast.makeText(context, "Every field should be filled", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        viewModel.saveSubscription()
+                                    }
                                 },
                                 modifier = Modifier.weight(1f).height(56.dp),
                                 colors = ButtonDefaults.buttonColors(

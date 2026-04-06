@@ -2,6 +2,7 @@ package com.selvaganesh7378.subtrack.ui.screens.profile
 
 import android.util.Patterns
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,7 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
-import com.selvaganesh7378.subtrack.domain.model.Profile
+import com.selvaganesh7378.subtrack.domain.model.profile.Profile
 import com.selvaganesh7378.subtrack.presentation.profile.ProfileViewModel
 import com.selvaganesh7378.subtrack.ui.theme.dangerBg
 import com.selvaganesh7378.subtrack.ui.theme.dangerBorder
@@ -55,7 +56,16 @@ fun ProfileScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Handle Toasts for success/error messages
+
+    val isProcessing = uiState.isUploadingImage ||
+            uiState.isSavingProfile ||
+            uiState.isUpdatingPassword ||
+            uiState.isDeletingAccount
+
+    BackHandler(enabled = isProcessing) {
+        Toast.makeText(context, "Please wait, process in progress...", Toast.LENGTH_SHORT).show()
+    }
+
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
         uiState.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -83,15 +93,14 @@ fun ProfileScreen(
                 CenterAlignedTopAppBar(
                     title = { Text("Profile") },
                     navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = onNavigateBack, enabled = !isProcessing) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                    )
+                        navigationIconContentColor = if (isProcessing) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground                    )
                 )
                 HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
             }

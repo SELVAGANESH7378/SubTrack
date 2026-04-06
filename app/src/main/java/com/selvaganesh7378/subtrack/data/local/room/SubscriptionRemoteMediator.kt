@@ -51,7 +51,6 @@ class SubscriptionRemoteMediator(
             val apiCategory = if (category == "All") null else category
             val apiQuery = query.ifBlank { null }
 
-            // Make your network request with filters
             val response = api.getSubscriptions(
                 count = "all",
                 page = page,
@@ -60,10 +59,16 @@ class SubscriptionRemoteMediator(
                 category = apiCategory,
                 serviceName = apiQuery
             )
+
+            if (!response.isSuccessful) {
+                throw retrofit2.HttpException(response)
+            }
+
             val responseBody = response.body()
 
             val subscriptionList = responseBody?.subscriptions ?: emptyList()
-            val isEndOfList = subscriptionList.isEmpty()
+            val paginationMeta = responseBody?.pagination
+            val isEndOfList = paginationMeta?.hasNextPage == false || subscriptionList.isEmpty()
 
             val apiSummary = responseBody?.summary
 
@@ -80,11 +85,10 @@ class SubscriptionRemoteMediator(
                     SubscriptionRemoteKeysEntity(id = it.id ?: 0, prevKey = prevKey, nextKey = nextKey)
                 }
 
-                // 1. Map the DTOs -> Domain -> Entities
+
                 val entities = subscriptionList.map { it.toDomain().toEntity() }
 
                 remoteKeysDao.insertAll(keys)
-                // 2. Insert the mapped entities
                 subscriptionDao.insertSubscriptions(entities)
 
                 if (apiSummary != null) {
